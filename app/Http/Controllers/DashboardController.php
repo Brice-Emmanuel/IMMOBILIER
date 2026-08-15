@@ -15,19 +15,19 @@ class DashboardController extends Controller
     {
         $userId = auth()->id();
 
-        // 1. Statistiques des structures (filtrées strictement par utilisateur)
+        // 1. Statistiques des structures
         $totalBatiments = Batiment::where('user_id', $userId)->count();
         $totalLogements = Logement::where('user_id', $userId)->count();
         $logementsDisponibles = Logement::where('user_id', $userId)->where('statut', true)->count();
         $logementsOccupes = Logement::where('user_id', $userId)->where('statut', false)->count();
         $totalLocataires = Locataire::where('user_id', $userId)->count();
 
-        // 2. Calculs financiers globaux
+        // 2. Calculs financiers
         $totalRevenus = Paiement::where('user_id', $userId)->sum('montant_paiement');
         $totalDepenses = Depense::where('user_id', $userId)->sum('montant_depenses');
         $soldeNet = $totalRevenus - $totalDepenses;
 
-        // 3. Activités récentes (Derniers paiements & Dernières dépenses)
+        // 3. Activités récentes
         $derniersPaiements = Paiement::where('user_id', $userId)
             ->with(['locataire.logement.batiment'])
             ->latest('date_paiement')
