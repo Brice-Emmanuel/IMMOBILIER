@@ -8,6 +8,7 @@ use App\Http\Controllers\DepenseController;
 use App\Http\Controllers\LocataireController;
 use App\Http\Controllers\LogementController;
 use App\Http\Controllers\PaiementController;
+use Illuminate\Support\Facades\Artisan;
 
 // --- Routes d'authentification ---
 Route::middleware('guest')->group(function () {
@@ -48,4 +49,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/paiements', [PaiementController::class, 'store'])->name('paiements.store');
     Route::get('/paiements/{paiement}/recu', [PaiementController::class, 'showRecu'])->name('paiements.showRecu');
     Route::get('/paiements/{paiement}/recu/download', [PaiementController::class, 'downloadRecu'])->name('paiements.downloadRecu');
+});
+Route::get('/run-migrations', function () {
+    try {
+        Artisan::call('migrate', ['--force' => true]);
+        return '<h1>✅ Migrations exécutées avec succès !</h1><pre>' . Artisan::output() . '</pre>';
+    } catch (\Exception $e) {
+        return '<h1>❌ Erreur de migration :</h1><pre>' . $e->getMessage() . '</pre>';
+    }
 });
