@@ -1,37 +1,36 @@
 FROM php:8.2-apache
 
-/* STREAMING_CHUNK:Installing system dependencies and PHP extensions... */
-RUN apt-get update && apt-get install -y 
+# Installation des dépendances système et extensions PHP requises par Laravel
+RUN apt-get update && apt-get install -y \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    zip \
+    unzip \
+    git \
+    curl \
+    libpq-dev \
+    && docker-php-ext-install pdo pdo_mysql pdo_pgsql mbstring exif pcntl bcmath gd
 
-libpng-dev 
-
-libonig-dev 
-
-libxml2-dev 
-
-zip 
-
-unzip 
-
-git 
-
-curl 
-
-&& docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
-
-/* STREAMING_CHUNK:Configuring Apache document root and rewrite module... /
+# Activation du module rewrite d'Apache
 RUN a2enmod rewrite
-ENV APACHE_DOCUMENT_ROOT /var/www/html/public
-RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/.conf
-RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/conf-available/*.conf
 
-/* STREAMING_CHUNK:Copying project files and installing Composer... */
-COPY . /var/www/html
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+# Configuration de la racine Apache vers le dossier /public de Laravel
+ENV APACHE_DOCUMENT_ROOT /var/www/html/public
+RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
+RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
+
+# Copie des fichiers du projet
 WORKDIR /var/www/html
+COPY . .
+
+# Installation de Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 RUN composer install --no-dev --optimize-autoloader
 
-/* STREAMING_CHUNK:Setting permissions for storage and cache... */
+# Permissions sur les dossiers de stockage Laravel
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
 EXPOSE 80
+
+CMD ["apache2-foreground"]
