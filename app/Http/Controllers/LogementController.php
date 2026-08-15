@@ -10,32 +10,40 @@ use Illuminate\Validation\Rule;
 class LogementController extends Controller
 {
     public function index(Request $request)
-{
-    // Bâtiments du bailleur pour alimenter le menu déroulant du filtre
-    $batiments = Batiment::where('user_id', auth()->id())->get();
+    {
+        // Bâtiments du bailleur pour le menu déroulant du filtre
+        $batiments = Batiment::where('user_id', auth()->id())->get();
 
-    // Construction de la requête filtrée
-    $query = Logement::where('user_id', auth()->id())->with('batiment');
+        // Construction de la requête
+        $query = Logement::where('user_id', auth()->id())->with('batiment');
 
-    
-    // Filtre par Catégorie
-    if ($request->filled('categorie')) {
-        $query->where('categorie', $request->categorie);
+        // Filtre par Recherche (numéro / porte)
+        if ($request->filled('search')) {
+            $query->where('numero', 'like', '%' . $request->search . '%');
+        }
+
+        // Filtre par Bâtiment
+        if ($request->filled('batiment_id')) {
+            $query->where('batiment_id', $request->batiment_id);
+        }
+
+        // Filtre par Catégorie
+        if ($request->filled('categorie')) {
+            $query->where('categorie', $request->categorie);
+        }
+
+        // Filtre par Statut (0 = Occupé, 1 = Libre)
+        if ($request->filled('statut')) {
+            $query->where('statut', $request->statut);
+        }
+
+        $logements = $query->latest()->get();
+
+        return view('logements.index', compact('logements', 'batiments'));
     }
-
-    // Filtre par Statut (0 ou 1)
-    if ($request->filled('statut')) {
-        $query->where('statut', $request->statut);
-    }
-
-    $logements = $query->latest()->get();
-
-    return view('logements.index', compact('logements', 'batiments'));
-}
 
     public function create()
     {
-        // Récupération des bâtiments appartenant uniquement au bailleur connecté
         $batiments = Batiment::where('user_id', auth()->id())->get();
 
         return view('logements.create', compact('batiments'));
@@ -55,7 +63,7 @@ class LogementController extends Controller
         ]);
 
         $validated['user_id'] = auth()->id();
-        $validated['statut'] = 1; // Par défaut Libre (1)
+        $validated['statut'] = 1; // Libre (1) par défaut
 
         Logement::create($validated);
 
@@ -66,7 +74,6 @@ class LogementController extends Controller
     {
         $this->authorizeUser($logement);
 
-        // Liste des bâtiments de l'utilisateur pour le menu déroulant
         $batiments = Batiment::where('user_id', auth()->id())->get();
 
         return view('logements.edit', compact('logement', 'batiments'));
@@ -85,7 +92,6 @@ class LogementController extends Controller
             'categorie' => 'required|in:appartement,maison,studio,boutique,bureau',
             'description' => 'nullable|string',
             'loyer_mensuel' => 'required|numeric|min:0',
-            'statut' => 'required|boolean',
         ]);
 
         $logement->update($validated);
