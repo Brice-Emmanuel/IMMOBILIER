@@ -128,7 +128,7 @@
         <!-- Footer / Signature -->
         <footer class="mt-auto py-5 px-4 border-t border-gray-300/40">
             <div class="max-w-7xl mx-auto text-center text-xs text-gray-500 font-normal">
-                Créé et développé par <span class="font-bold text-sm text-[#0A2E38] ml-1">Emmanuel nyamsi</span>
+                Créé et développé par <span class="font-bold text-sm text-[#0A2E38] ml-1">Emmanuel NYAMSI</span>
             </div>
         </footer>
     </div>
