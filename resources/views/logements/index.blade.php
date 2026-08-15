@@ -13,7 +13,7 @@
         </a>
     </div>
 
-    <!-- Barre de Filtres et Recherche (Fond Sombre #0A2E38) -->
+    <!-- Barre de Filtres et Recherche -->
     <form method="GET" action="{{ route('logements.index') }}" class="bg-[#0A2E38] p-5 rounded-2xl shadow-md text-white">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             
@@ -88,13 +88,14 @@
                             <p class="text-xs text-gray-500 font-medium mt-0.5">N° / Porte : <strong class="text-gray-800">{{ $l->numero ?? 'N/A' }}</strong></p>
                         </div>
 
+                        <!-- Badge Statut (Auto-géré : Libre par défaut ou Occupé via locataire) -->
                         @if($l->statut)
                             <span class="inline-flex items-center bg-emerald-50 text-emerald-700 text-[11px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap border border-emerald-200">
-                                Libre
+                                <i class="fa-solid fa-circle text-[6px] mr-1.5 text-emerald-500"></i> Libre
                             </span>
                         @else
                             <span class="inline-flex items-center bg-red-50 text-red-700 text-[11px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap border border-red-200">
-                                Occupé
+                                <i class="fa-solid fa-circle text-[6px] mr-1.5 text-red-500"></i> Occupé
                             </span>
                         @endif
                     </div>

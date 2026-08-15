@@ -65,49 +65,20 @@
             </div>
         </div>
 
-        <!-- Loyer Mensuel & Statut (Toggle Switch) -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-            <div>
-                <label class="block text-xs font-bold uppercase text-gray-700 mb-1.5">
-                    Loyer Mensuel (FCFA) <span class="text-red-500">*</span>
-                </label>
-                <div class="relative">
-                    <input type="number" name="loyer_mensuel" value="{{ old('loyer_mensuel', $logement->loyer_mensuel) }}" required 
-                           placeholder="Ex: 75000" 
-                           class="w-full border @error('loyer_mensuel') border-red-500 @else border-gray-300 @enderror rounded-xl pl-3.5 pr-12 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0A2E38] transition">
-                    <span class="absolute right-2.5 top-2 text-xs font-bold text-gray-400 pointer-events-none">FCFA</span>
-                </div>
-                @error('loyer_mensuel') 
-                    <span class="text-red-500 text-xs mt-1 block"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</span> 
-                @enderror
+        <!-- Loyer Mensuel -->
+        <div>
+            <label class="block text-xs font-bold uppercase text-gray-700 mb-1.5">
+                Loyer Mensuel (FCFA) <span class="text-red-500">*</span>
+            </label>
+            <div class="relative">
+                <input type="number" name="loyer_mensuel" value="{{ old('loyer_mensuel', $logement->loyer_mensuel) }}" required 
+                       placeholder="Ex: 75000" 
+                       class="w-full border @error('loyer_mensuel') border-red-500 @else border-gray-300 @enderror rounded-xl pl-3.5 pr-14 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0A2E38] transition">
+                <span class="absolute right-3 top-2 text-xs font-bold text-gray-400 pointer-events-none">FCFA</span>
             </div>
-
-            <!-- Interrupteur Statut (Occupé / Libre) -->
-            <div>
-                <label class="block text-xs font-bold uppercase text-gray-700 mb-1.5">Disponibilité</label>
-                
-                <!-- Champ caché pour la valeur soumise (0 = Occupé, 1 = Libre) -->
-                <input type="hidden" name="statut" id="statutInput" value="{{ old('statut', $logement->statut) }}">
-
-                <div class="flex items-center justify-between border border-gray-200 rounded-xl p-2.5 bg-gray-50">
-                    <span id="statutLabel" class="text-xs font-bold {{ old('statut', $logement->statut) == 0 ? 'text-red-600' : 'text-emerald-600' }}">
-                        {{ old('statut', $logement->statut) == 0 ? 'Occupé' : 'Libre' }}
-                    </span>
-
-                    <!-- Bouton Toggle -->
-                    <button type="button" 
-                            id="toggleStatutBtn" 
-                            onclick="toggleStatut()" 
-                            class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ old('statut', $logement->statut) == 0 ? 'bg-red-500' : 'bg-emerald-500' }}">
-                        <span id="toggleCircle" 
-                              class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ old('statut', $logement->statut) == 0 ? 'translate-x-5' : 'translate-x-0' }}">
-                        </span>
-                    </button>
-                </div>
-                @error('statut') 
-                    <span class="text-red-500 text-xs mt-1 block"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</span> 
-                @enderror
-            </div>
+            @error('loyer_mensuel') 
+                <span class="text-red-500 text-xs mt-1 block"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</span> 
+            @enderror
         </div>
 
         <!-- Description -->
@@ -132,30 +103,4 @@
         </div>
     </form>
 </div>
-
-<!-- Script d'interaction pour le bouton Toggle -->
-<script>
-    function toggleStatut() {
-        const input = document.getElementById('statutInput');
-        const label = document.getElementById('statutLabel');
-        const btn = document.getElementById('toggleStatutBtn');
-        const circle = document.getElementById('toggleCircle');
-
-        // Si actuellement Libre (1), passe à Occupé (0)
-        if (input.value == "1") {
-            input.value = "0";
-            label.textContent = "Occupé";
-            label.className = "text-xs font-bold text-red-600";
-            btn.className = "relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none bg-red-500";
-            circle.className = "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out translate-x-5";
-        } else {
-            // Passe à Libre (1)
-            input.value = "1";
-            label.textContent = "Libre";
-            label.className = "text-xs font-bold text-emerald-600";
-            btn.className = "relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none bg-emerald-500";
-            circle.className = "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out translate-x-0";
-        }
-    }
-</script>
 @endsection

@@ -9,37 +9,21 @@ use Illuminate\Validation\Rule;
 
 class LogementController extends Controller
 {
-   public function index(Request $request)
+    public function index(Request $request)
 {
-    // Bâtiments du bailleur pour le menu déroulant
+    // Bâtiments du bailleur pour alimenter le menu déroulant du filtre
     $batiments = Batiment::where('user_id', auth()->id())->get();
 
-    // Requête de base
+    // Construction de la requête filtrée
     $query = Logement::where('user_id', auth()->id())->with('batiment');
 
-    // 1. Recherche par mot-clé (Numéro/Porte, Description ou Nom du Bâtiment)
-    if ($request->filled('search')) {
-        $search = $request->search;
-        $query->where(function($q) use ($search) {
-            $q->where('numero', 'like', "%{$search}%")
-              ->orWhere('description', 'like', "%{$search}%")
-              ->orWhereHas('batiment', function($bQuery) use ($search) {
-                  $bQuery->where('name', 'like', "%{$search}%");
-              });
-        });
-    }
-
-    // 2. Filtre par Bâtiment
-    if ($request->filled('batiment_id')) {
-        $query->where('batiment_id', $request->batiment_id);
-    }
-
-    // 3. Filtre par Catégorie
+    
+    // Filtre par Catégorie
     if ($request->filled('categorie')) {
         $query->where('categorie', $request->categorie);
     }
 
-    // 4. Filtre par Statut (0 = Occupé, 1 = Libre)
+    // Filtre par Statut (0 ou 1)
     if ($request->filled('statut')) {
         $query->where('statut', $request->statut);
     }
@@ -48,6 +32,7 @@ class LogementController extends Controller
 
     return view('logements.index', compact('logements', 'batiments'));
 }
+
     public function create()
     {
         // Récupération des bâtiments appartenant uniquement au bailleur connecté
