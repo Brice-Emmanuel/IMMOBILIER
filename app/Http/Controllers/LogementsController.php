@@ -11,16 +11,11 @@ class LogementController extends Controller
 {
     public function index(Request $request)
     {
-        // Bâtiments du bailleur pour le menu déroulant du filtre
+        // Bâtiments du bailleur pour alimenter le menu déroulant du filtre
         $batiments = Batiment::where('user_id', auth()->id())->get();
 
-        // Construction de la requête
+        // Construction de la requête filtrée
         $query = Logement::where('user_id', auth()->id())->with('batiment');
-
-        // Filtre par Recherche (numéro / porte)
-        if ($request->filled('search')) {
-            $query->where('numero', 'like', '%' . $request->search . '%');
-        }
 
         // Filtre par Bâtiment
         if ($request->filled('batiment_id')) {
@@ -44,6 +39,7 @@ class LogementController extends Controller
 
     public function create()
     {
+        // Récupération des bâtiments appartenant uniquement au bailleur connecté
         $batiments = Batiment::where('user_id', auth()->id())->get();
 
         return view('logements.create', compact('batiments'));
@@ -63,7 +59,7 @@ class LogementController extends Controller
         ]);
 
         $validated['user_id'] = auth()->id();
-        $validated['statut'] = 1; // Libre (1) par défaut
+        $validated['statut'] = 1; // Par défaut Libre (1)
 
         Logement::create($validated);
 
@@ -74,6 +70,7 @@ class LogementController extends Controller
     {
         $this->authorizeUser($logement);
 
+        // Liste des bâtiments de l'utilisateur pour le menu déroulant
         $batiments = Batiment::where('user_id', auth()->id())->get();
 
         return view('logements.edit', compact('logement', 'batiments'));
@@ -92,6 +89,7 @@ class LogementController extends Controller
             'categorie' => 'required|in:appartement,maison,studio,boutique,bureau',
             'description' => 'nullable|string',
             'loyer_mensuel' => 'required|numeric|min:0',
+            'statut' => 'required|boolean',
         ]);
 
         $logement->update($validated);
@@ -113,4 +111,4 @@ class LogementController extends Controller
             abort(403);
         }
     }
-}
+} 

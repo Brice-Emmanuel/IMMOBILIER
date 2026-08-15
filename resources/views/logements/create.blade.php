@@ -1,111 +1,156 @@
-<?php
+@extends('layouts.app')
 
-namespace App\Http\Controllers;
+@section('content')
+<div class="max-w-lg mx-auto bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
+    <!-- En-tête -->
+    <div class="bg-[#0A2E38] text-white p-5 flex items-center justify-between">
+        <h1 class="font-bold uppercase text-xs tracking-wider flex items-center">
+            <i class="fa-solid fa-door-open mr-2 text-[#C6E900]"></i> Ajouter un Logement
+        </h1>
+        <a href="{{ route('logements.index') }}" class="text-gray-300 hover:text-white text-xs transition">
+            <i class="fa-solid fa-xmark text-base"></i>
+        </a>
+    </div>
 
-use App\Models\Logement;
-use App\Models\Batiment;
-use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
+    <!-- Formulaire -->
+    <form method="POST" action="{{ route('logements.store') }}" class="p-6 space-y-4">
+        @csrf
 
-class LogementController extends Controller
-{
-    public function index(Request $request)
-    {
-        $batiments = Batiment::where('user_id', auth()->id())->get();
+        <!-- Bâtiment -->
+        <div>
+            <label class="block text-xs font-bold uppercase text-gray-700 mb-1.5">
+                Bâtiment <span class="text-red-500">*</span>
+            </label>
+            <select name="batiment_id" required 
+                    class="w-full border @error('batiment_id') border-red-500 @else border-gray-300 @enderror rounded-xl px-3.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#0A2E38] transition">
+                <option value="" disabled {{ old('batiment_id') ? '' : 'selected' }}>-- Sélectionner un bâtiment --</option>
+                @foreach($batiments as $b)
+                    <option value="{{ $b->id }}" {{ old('batiment_id') == $b->id ? 'selected' : '' }}>
+                        {{ $b->name }} ({{ $b->ville }})
+                    </option>
+                @endforeach
+            </select>
+            @error('batiment_id') 
+                <span class="text-red-500 text-xs mt-1 block"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</span> 
+            @enderror
+        </div>
 
-        $query = Logement::where('user_id', auth()->id())->with('batiment');
+        <!-- Numéro / Porte & Catégorie -->
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs font-bold uppercase text-gray-700 mb-1.5">Numéro / Porte</label>
+                <input type="text" name="numero" value="{{ old('numero') }}" 
+                       placeholder="Ex: Appt 102, Porte B3..." 
+                       class="w-full border @error('numero') border-red-500 @else border-gray-300 @enderror rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0A2E38] transition">
+                @error('numero') 
+                    <span class="text-red-500 text-xs mt-1 block"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</span> 
+                @enderror
+            </div>
 
-        if ($request->filled('search')) {
-            $query->where('numero', 'like', '%' . $request->search . '%');
+            <div>
+                <label class="block text-xs font-bold uppercase text-gray-700 mb-1.5">
+                    Catégorie <span class="text-red-500">*</span>
+                </label>
+                <select name="categorie" required 
+                        class="w-full border @error('categorie') border-red-500 @else border-gray-300 @enderror rounded-xl px-3.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#0A2E38] transition">
+                    <option value="appartement" {{ old('categorie') == 'appartement' ? 'selected' : '' }}>Appartement</option>
+                    <option value="studio" {{ old('categorie') == 'studio' ? 'selected' : '' }}>Studio</option>
+                    <option value="maison" {{ old('categorie') == 'maison' ? 'selected' : '' }}>Maison</option>
+                    <option value="boutique" {{ old('categorie') == 'boutique' ? 'selected' : '' }}>Boutique</option>
+                    <option value="bureau" {{ old('categorie') == 'bureau' ? 'selected' : '' }}>Bureau</option>
+                </select>
+                @error('categorie') 
+                    <span class="text-red-500 text-xs mt-1 block"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</span> 
+                @enderror
+            </div>
+        </div>
+
+        <!-- Loyer Mensuel & Statut (Toggle Switch) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+            <div>
+                <label class="block text-xs font-bold uppercase text-gray-700 mb-1.5">
+                    Loyer Mensuel (FCFA) <span class="text-red-500">*</span>
+                </label>
+                <div class="relative">
+                    <input type="number" name="loyer_mensuel" value="{{ old('loyer_mensuel') }}" required 
+                           placeholder="Ex: 75000" 
+                           class="w-full border @error('loyer_mensuel') border-red-500 @else border-gray-300 @enderror rounded-xl pl-3.5 pr-14 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0A2E38] transition">
+                    <span class="absolute right-3 top-2 text-xs font-bold text-gray-400 pointer-events-none">FCFA</span>
+                </div>
+                @error('loyer_mensuel') 
+                    <span class="text-red-500 text-xs mt-1 block"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</span> 
+                @enderror
+            </div>
+
+            <!-- Interrupteur Statut (Occupé / Libre) -->
+            <div>
+                <label class="block text-xs font-bold uppercase text-gray-700 mb-1.5">Disponibilité Initiale</label>
+                
+                <input type="hidden" name="statut" id="statutInput" value="{{ old('statut', 1) }}">
+
+                <div class="flex items-center justify-between border border-gray-200 rounded-xl p-2.5 bg-gray-50">
+                    <span id="statutLabel" class="text-xs font-bold {{ old('statut', 1) == 0 ? 'text-red-600' : 'text-emerald-600' }}">
+                        {{ old('statut', 1) == 0 ? 'Occupé' : 'Libre' }}
+                    </span>
+
+                    <button type="button" 
+                            id="toggleStatutBtn" 
+                            onclick="toggleStatut()" 
+                            class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ old('statut', 1) == 0 ? 'bg-red-500' : 'bg-emerald-500' }}">
+                        <span id="toggleCircle" 
+                              class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ old('statut', 1) == 0 ? 'translate-x-5' : 'translate-x-0' }}">
+                        </span>
+                    </button>
+                </div>
+                @error('statut') 
+                    <span class="text-red-500 text-xs mt-1 block"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</span> 
+                @enderror
+            </div>
+        </div>
+
+        <!-- Description -->
+        <div>
+            <label class="block text-xs font-bold uppercase text-gray-700 mb-1.5">Description (Optionnelle)</label>
+            <textarea name="description" rows="3" 
+                      placeholder="Ex: 2 chambres, 1 salon, compteur prépayé, balcon..." 
+                      class="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0A2E38] transition">{{ old('description') }}</textarea>
+            @error('description') 
+                <span class="text-red-500 text-xs mt-1 block"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</span> 
+            @enderror
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-end space-x-3 pt-4 border-t border-gray-100">
+            <a href="{{ route('logements.index') }}" class="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold uppercase rounded-xl transition">
+                Annuler
+            </a>
+            <button type="submit" class="px-5 py-2.5 bg-[#0A2E38] hover:bg-[#061e25] text-white text-xs font-bold uppercase rounded-xl transition shadow-sm">
+                <i class="fa-solid fa-check mr-1 text-[#C6E900]"></i> Ajouter
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    function toggleStatut() {
+        const input = document.getElementById('statutInput');
+        const label = document.getElementById('statutLabel');
+        const btn = document.getElementById('toggleStatutBtn');
+        const circle = document.getElementById('toggleCircle');
+
+        if (input.value == "1") {
+            input.value = "0";
+            label.textContent = "Occupé";
+            label.className = "text-xs font-bold text-red-600";
+            btn.className = "relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none bg-red-500";
+            circle.className = "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out translate-x-5";
+        } else {
+            input.value = "1";
+            label.textContent = "Libre";
+            label.className = "text-xs font-bold text-emerald-600";
+            btn.className = "relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none bg-emerald-500";
+            circle.className = "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out translate-x-0";
         }
-
-        if ($request->filled('batiment_id')) {
-            $query->where('batiment_id', $request->batiment_id);
-        }
-
-        if ($request->filled('categorie')) {
-            $query->where('categorie', $request->categorie);
-        }
-
-        if ($request->filled('statut')) {
-            $query->where('statut', $request->statut);
-        }
-
-        $logements = $query->latest()->get();
-
-        return view('logements.index', compact('logements', 'batiments'));
     }
-
-    public function create()
-    {
-        $batiments = Batiment::where('user_id', auth()->id())->get();
-
-        return view('logements.create', compact('batiments'));
-    }
-
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'batiment_id' => [
-                'required',
-                Rule::exists('batiments', 'id')->where(fn ($query) => $query->where('user_id', auth()->id()))
-            ],
-            'numero' => 'nullable|string|max:50',
-            'categorie' => 'required|in:appartement,maison,studio,boutique,bureau',
-            'description' => 'nullable|string',
-            'loyer_mensuel' => 'required|numeric|min:0',
-        ]);
-
-        $validated['user_id'] = auth()->id();
-        $validated['statut'] = 1; // Toujours Libre (1) par défaut à la création
-
-        Logement::create($validated);
-
-        return redirect()->route('logements.index')->with('success', 'Logement ajouté avec succès.');
-    }
-
-    public function edit(Logement $logement)
-    {
-        $this->authorizeUser($logement);
-
-        $batiments = Batiment::where('user_id', auth()->id())->get();
-
-        return view('logements.edit', compact('logement', 'batiments'));
-    }
-
-    public function update(Request $request, Logement $logement)
-    {
-        $this->authorizeUser($logement);
-
-        $validated = $request->validate([
-            'batiment_id' => [
-                'required',
-                Rule::exists('batiments', 'id')->where(fn ($query) => $query->where('user_id', auth()->id()))
-            ],
-            'numero' => 'nullable|string|max:50',
-            'categorie' => 'required|in:appartement,maison,studio,boutique,bureau',
-            'description' => 'nullable|string',
-            'loyer_mensuel' => 'required|numeric|min:0',
-            'statut' => 'required|boolean',
-        ]);
-
-        $logement->update($validated);
-
-        return redirect()->route('logements.index')->with('success', 'Logement mis à jour avec succès.');
-    }
-
-    public function destroy(Logement $logement)
-    {
-        $this->authorizeUser($logement);
-        $logement->delete();
-
-        return redirect()->route('logements.index')->with('success', 'Logement supprimé.');
-    }
-
-    private function authorizeUser(Logement $logement)
-    {
-        if ($logement->user_id !== auth()->id()) {
-            abort(403);
-        }
-    }
-}
+</script>
+@endsection
