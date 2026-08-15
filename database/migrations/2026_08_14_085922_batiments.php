@@ -6,16 +6,13 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-  Schema::create('batiments', function (Blueprint $table) {
+        Schema::create('batiments', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('name');
             $table->text('adresse')->nullable();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('ville');
             $table->timestamps();
         });

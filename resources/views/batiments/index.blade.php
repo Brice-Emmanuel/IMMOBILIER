@@ -1,177 +1,115 @@
 @extends('layouts.app')
 
 @section('content')
-<style>
-    .card-custom {
-        border: none;
-        border-radius: 16px;
-        box-shadow: 0 5px 20px rgba(0,0,0,0.05);
-    }
-    .custom-input, .custom-select {
-        border-radius: 10px;
-        padding: 10px 14px;
-        border: 1px solid #cbd5e1;
-        background-color: #f8fafc;
-    }
-    .kpi-card {
-        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-        border-radius: 16px;
-        border: 1px solid #93c5fd;
-    }
-    .badge-logements {
-        background-color: #e0e7ff;
-        color: #3730a3;
-        font-weight: 600;
-        padding: 5px 10px;
-        border-radius: 8px;
-    }
-</style>
-
-<div class="container-fluid py-3">
-
-    <!-- En-tête -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<div class="space-y-6">
+    <!-- En-tête de page -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-            <h3 class="fw-bold text-dark mb-1"><i class="bi bi-building me-2 text-primary"></i>Gestion des Bâtiments</h3>
-            <p class="text-muted mb-0 fs-7">Gérez vos immeubles, résidences et complexes immobiliers</p>
+            <h1 class="text-2xl font-black text-[#0A2E38] uppercase tracking-wide">Gestion des Bâtiments</h1>
+            <p class="text-xs text-gray-500 mt-1">Gérez l'ensemble de vos biens immobiliers et consultez leurs logements affiliés.</p>
         </div>
-        <a href="{{ route('batiments.create') }}" class="btn btn-primary rounded-3 px-4 py-2 fw-bold shadow-sm">
-            <i class="bi bi-plus-lg me-1"></i> Nouveau Bâtiment
+        <a href="{{ route('batiments.create') }}" class="inline-flex items-center justify-center bg-[#0A2E38] hover:bg-[#061e25] text-white px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition shadow-sm hover:shadow">
+            <i class="fa-solid fa-plus mr-2 text-[#C6E900]"></i> Ajouter un Bâtiment
         </a>
     </div>
 
-    <!-- Carte de Récapitulatif -->
-    <div class="card kpi-card mb-4 p-3 border-0 shadow-sm">
-        <div class="d-flex align-items-center justify-content-between">
-            <div class="d-flex align-items-center gap-3">
-                <div class="bg-primary text-white p-3 rounded-3">
-                    <i class="bi bi-houses-fill fs-3"></i>
-                </div>
-                <div>
-                    <span class="text-muted small fw-semibold">Total de vos bâtiments</span>
-                    <h3 class="fw-bold text-primary mb-0">{{ $batiments->total() }} Immeuble(s)</h3>
+    <!-- Barre de Filtres et Recherche -->
+    <form method="GET" action="{{ route('batiments.index') }}" class="bg-[#0A2E38] p-5 rounded-2xl shadow-md text-white">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-300 mb-1.5">Recherche</label>
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-gray-400"></i>
+                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Nom, adresse..." class="w-full pl-9 pr-3 py-2 bg-white/10 text-white placeholder-gray-400 border border-gray-600 focus:border-[#C6E900] focus:ring-1 focus:ring-[#C6E900] rounded-xl text-xs transition">
                 </div>
             </div>
-        </div>
-    </div>
 
-    <!-- Message de succès -->
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show rounded-3 border-0 shadow-sm mb-4" role="alert">
-            <i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
+            <div>
+                <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-300 mb-1.5">Ville</label>
+                <select name="ville" class="w-full px-3 py-2 bg-[#0A2E38] text-white border border-gray-600 focus:border-[#C6E900] focus:ring-1 focus:ring-[#C6E900] rounded-xl text-xs transition">
+                    <option value="">Toutes les villes</option>
+                    @foreach($villes as $ville)
+                        <option value="{{ $ville }}" {{ request('ville') == $ville ? 'selected' : '' }}>{{ $ville }}</option>
+                    @endforeach
+                </select>
+            </div>
 
-    <!-- Formulaire de Filtrage -->
-    <div class="card card-custom mb-4">
-        <div class="card-body p-3 p-md-4">
-            <form action="{{ route('batiments.index') }}" method="GET" class="row g-3">
-                
-                <!-- Recherche Textuelle -->
-                <div class="col-md-6">
-                    <label class="form-label fw-semibold text-muted small">Recherche rapide</label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-light border-end-0 text-muted rounded-start-3">
-                            <i class="bi bi-search"></i>
+            <div>
+                <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-300 mb-1.5">Trier par</label>
+                <select name="sort" class="w-full px-3 py-2 bg-[#0A2E38] text-white border border-gray-600 focus:border-[#C6E900] focus:ring-1 focus:ring-[#C6E900] rounded-xl text-xs transition">
+                    <option value="desc" {{ request('sort') == 'desc' ? 'selected' : '' }}>Plus récents d'abord</option>
+                    <option value="asc" {{ request('sort') == 'asc' ? 'selected' : '' }}>Plus anciens d'abord</option>
+                </select>
+            </div>
+
+            <div class="flex items-end space-x-2">
+                <button type="submit" class="flex-1 bg-[#C6E900] hover:bg-[#b0d000] text-[#0A2E38] font-bold py-2 px-4 rounded-xl text-xs uppercase tracking-wider transition">
+                    Filtrer
+                </button>
+                @if(request()->hasAny(['search', 'ville', 'sort']))
+                    <a href="{{ route('batiments.index') }}" class="bg-white/10 hover:bg-white/20 text-white font-bold py-2 px-3 rounded-xl text-xs uppercase transition" title="Réinitialiser">
+                        <i class="fa-solid fa-rotate-left"></i>
+                    </a>
+                @endif
+            </div>
+        </div>
+    </form>
+
+    <!-- Cartes des Bâtiments -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        @forelse($batiments as $b)
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 hover:shadow-md transition flex flex-col justify-between overflow-hidden">
+                <div class="p-5">
+                    <div class="flex justify-between items-start gap-2">
+                        <h3 class="font-bold text-lg text-[#0A2E38] line-clamp-1">{{ $b->name }}</h3>
+                        <span class="inline-flex items-center bg-[#0A2E38]/10 text-[#0A2E38] text-[11px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap">
+                            <i class="fa-solid fa-door-open mr-1 text-xs"></i> {{ $b->logements_count }}
                         </span>
-                        <input type="text" name="search" class="form-control custom-input border-start-0 rounded-end-3" 
-                               placeholder="Nom du bâtiment, adresse..." value="{{ request('search') }}">
+                    </div>
+
+                    <p class="text-xs text-gray-500 mt-3 flex items-start">
+                        <i class="fa-solid fa-location-dot mt-0.5 mr-2 text-[#0A2E38] shrink-0"></i>
+                        <span>{{ $b->adresse ? $b->adresse . ', ' : '' }}<strong class="text-gray-700">{{ $b->ville }}</strong></span>
+                    </p>
+                </div>
+
+                <div class="bg-gray-50 px-5 py-3 border-t border-gray-100 flex items-center justify-between text-xs font-bold">
+                    <a href="{{ route('batiments.show', $b) }}" class="text-[#0A2E38] hover:text-[#061e25] transition flex items-center">
+                        <i class="fa-solid fa-eye mr-1.5"></i> Détails
+                    </a>
+
+                    <div class="flex items-center space-x-3">
+                        <a href="{{ route('batiments.edit', $b) }}" class="text-blue-600 hover:text-blue-800 transition flex items-center">
+                            <i class="fa-solid fa-pen-to-square mr-1"></i> Éditer
+                        </a>
+
+                        <form method="POST" action="{{ route('batiments.destroy', $b) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce bâtiment ?')" class="inline">
+                            @csrf 
+                            @method('DELETE')
+                            <button type="submit" class="text-red-500 hover:text-red-700 transition flex items-center">
+                                <i class="fa-solid fa-trash mr-1"></i>
+                            </button>
+                        </form>
                     </div>
                 </div>
-
-                <!-- Filtre par Ville -->
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold text-muted small">Ville</label>
-                    <select name="ville" class="form-select custom-select" onchange="this.form.submit()">
-                        <option value="">Toutes les villes</option>
-                        @foreach($villes as $v)
-                            <option value="{{ $v }}" {{ request('ville') === $v ? 'selected' : '' }}>
-                                {{ $v }}
-                            </option>
-                        @endforeach
-                    </select>
+            </div>
+        @empty
+            <div class="col-span-full bg-white rounded-2xl p-12 text-center border border-dashed border-gray-300">
+                <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 text-gray-400">
+                    <i class="fa-solid fa-building-circle-xmark text-xl"></i>
                 </div>
-
-                <!-- Boutons Filtrer / Effacer -->
-                <div class="col-md-2 d-flex align-items-end gap-2">
-                    <button type="submit" class="btn btn-primary custom-select w-100 fw-semibold">
-                        <i class="bi bi-funnel me-1"></i> Filtrer
-                    </button>
-                    @if(request()->has('search') || request()->has('ville'))
-                        <a href="{{ route('batiments.index') }}" class="btn btn-light custom-select text-danger fw-semibold" title="Réinitialiser">
-                            <i class="bi bi-x-circle"></i>
-                        </a>
-                    @endif
-                </div>
-
-            </form>
-        </div>
-    </div>
-
-    <!-- Tableau des Bâtiments -->
-    <div class="card card-custom overflow-hidden">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light border-bottom">
-                    <tr>
-                        <th class="ps-4 py-3 text-muted fw-bold">#</th>
-                        <th class="py-3 text-muted fw-bold">Nom du Bâtiment</th>
-                        <th class="py-3 text-muted fw-bold">Ville</th>
-                        <th class="py-3 text-muted fw-bold">Adresse</th>
-                        <th class="py-3 text-muted fw-bold">Capacité</th>
-                        <th class="pe-4 py-3 text-end text-muted fw-bold">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($batiments as $b)
-                        <tr>
-                            <td class="ps-4 fw-bold text-secondary">{{ $b->id }}</td>
-                            <td>
-                                <div class="fw-bold text-dark fs-6">{{ $b->name }}</div>
-                                @if($b->description)
-                                    <small class="text-muted">{{ Str::limit($b->description, 40) }}</small>
-                                @endif
-                            </td>
-                            <td>
-                                <span class="badge bg-light text-dark border px-2 py-1">
-                                    <i class="bi bi-geo-alt me-1 text-danger"></i>{{ $b->ville ?? 'Non renseignée' }}
-                                </span>
-                            </td>
-                            <td class="text-muted">{{ $b->adresse ?? '-' }}</td>
-                            <td>
-                                <span class="badge-logements">
-                                    <i class="bi bi-door-closed me-1"></i>{{ $b->logements_count ?? 0 }} Logement(s)
-                                </span>
-                            </td>
-                            <td class="pe-4 text-end">
-                                <div class="btn-group gap-1">
-                                    <a href="{{ route('batiments.show', $b) }}" class="btn btn-sm btn-light text-primary rounded-2" title="Voir les détails"><i class="bi bi-eye"></i></a>
-                                    <a href="{{ route('batiments.edit', $b) }}" class="btn btn-sm btn-light text-warning rounded-2" title="Modifier"><i class="bi bi-pencil"></i></a>
-                                    <form action="{{ route('batiments.destroy', $b) }}" method="POST" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce bâtiment ?')">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-light text-danger rounded-2" title="Supprimer"><i class="bi bi-trash"></i></button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">
-                                <i class="bi bi-building-exclamation fs-1 d-block mb-2 text-secondary"></i>
-                                Aucun bâtiment trouvé avec ces critères.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+                <h3 class="text-sm font-bold text-gray-700 uppercase">Aucun bâtiment trouvé</h3>
+                <p class="text-xs text-gray-500 mt-1">Essayer d'ajuster vos filtres de recherche ou créez votre premier bâtiment.</p>
+                <a href="{{ route('batiments.create') }}" class="inline-block mt-4 bg-[#0A2E38] text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider">
+                    Créer un bâtiment
+                </a>
+            </div>
+        @endforelse
     </div>
 
     <!-- Pagination -->
-    <div class="d-flex justify-content-center mt-4">
+    <div>
         {{ $batiments->links() }}
     </div>
-
 </div>
 @endsection

@@ -5,102 +5,124 @@ namespace App\Http\Controllers;
 use App\Models\Paiement;
 use App\Models\Locataire;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Auth;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class PaiementController extends Controller
 {
+    /**
+     * Liste des paiements avec filtres et recherche
+     */
     public function index(Request $request)
     {
-        $query = Paiement::with('locataire.logement');
+        $query = Paiement::where('user_id', Auth::id())
+            ->with(['locataire.logement.batiment']);
 
-        // 1. Filtre par Locataire
+        // Recherche par mot-clé (Nom ou Prénom du locataire)
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('locataire', function ($q) use ($search) {
+                $q->where('nom', 'like', "%{$search}%")
+                  ->orWhere('prenom', 'like', "%{$search}%");
+            });
+        }
+
+        // Filtre par locataire spécifique
         if ($request->filled('locataire_id')) {
             $query->where('locataire_id', $request->locataire_id);
         }
 
-        // 2. Recherche textuelle dans les notes / remarques
-        if ($request->filled('search')) {
-            $query->where('note', 'like', "%{$request->search}%");
+        // Filtre par mois/année de paiement (ex: 2026-08)
+        if ($request->filled('mois')) {
+            $date = explode('-', $request->mois);
+            if (count($date) === 2) {
+                $query->whereYear('date_paiement', $date[0])
+                      ->whereMonth('date_paiement', $date[1]);
+            }
         }
 
-        // 3. Filtre par Date Début de paiement
-        if ($request->filled('date_debut')) {
-            $query->whereDate('date_paiement', '>=', $request->date_debut);
-        }
+        // Tri (par défaut : plus récents d'abord)
+        $sort = $request->get('sort', 'desc');
+        $query->orderBy('date_paiement', $sort);
 
-        // 4. Filtre par Date Fin de paiement
-        if ($request->filled('date_fin')) {
-            $query->whereDate('date_paiement', '<=', $request->date_fin);
-        }
+        $paiements = $query->paginate(15)->withQueryString();
 
-        // Total des encaissements pour la sélection
-        $totalPaiements = (clone $query)->sum('montant_paiement');
+        // Récupération de la liste des locataires pour le filtre
+        $locataires = Locataire::where('user_id', Auth::id())->orderBy('nom')->get();
 
-        // Conserve les filtres dans les liens de pagination (appends)
-        $paiements = $query->latest('date_paiement')->paginate(10)->appends($request->query());
-
-        // Liste des locataires pour le filtre déroulant
-        $locataires = Locataire::orderBy('nom')->get();
-
-        return view('paiements.index', compact('paiements', 'locataires', 'totalPaiements'));
+        return view('paiements.index', compact('paiements', 'locataires'));
     }
 
+    /**
+     * Formulaire d'ajout de paiement
+     */
     public function create()
     {
-        $locataires = Locataire::orderBy('nom')->get();
+        $locataires = Locataire::where('user_id', Auth::id())
+            ->with('logement.batiment')
+            ->get();
+
         return view('paiements.create', compact('locataires'));
     }
 
+    /**
+     * Enregistrement du paiement
+     */
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'locataire_id'     => 'required|exists:locataires,id',
+            'locataire_id' => [
+                'required',
+                Rule::exists('locataires', 'id')->where(fn ($query) => $query->where('user_id', Auth::id()))
+            ],
             'montant_paiement' => 'required|numeric|min:0',
-            'date_paiement'    => 'required|date',
+            'date_paiement' => 'required|date',
             'date_debut_conso' => 'required|date',
-            'date_fin_conso'   => 'required|date|after_or_equal:date_debut_conso',
-            'note'             => 'nullable|string|max:255',
+            'date_fin_conso' => 'required|date|after_or_equal:date_debut_conso',
         ]);
 
-        Paiement::create($validated);
+        $validated['user_id'] = Auth::id();
 
-        return redirect()->route('paiements.index')
+        $paiement = Paiement::create($validated);
+
+        return redirect()->route('paiements.showRecu', $paiement->id)
             ->with('success', 'Paiement enregistré avec succès.');
     }
 
-    public function show(Paiement $paiement)
+    /**
+     * Affichage web du reçu (impression / aperçu)
+     */
+    public function showRecu(Paiement $paiement)
     {
-        $paiement->load('locataire.logement');
-        return view('paiements.show', compact('paiement'));
+        $this->authorizeUser($paiement);
+
+        $paiement->load(['locataire.logement.batiment', 'user']);
+
+        return view('paiements.recu', compact('paiement'));
     }
 
-    public function edit(Paiement $paiement)
+    /**
+     * Téléchargement du reçu au format PDF
+     */
+    public function downloadRecu(Paiement $paiement)
     {
-        $locataires = Locataire::orderBy('nom')->get();
-        return view('paiements.edit', compact('paiement', 'locataires'));
+        $this->authorizeUser($paiement);
+
+        $paiement->load(['locataire.logement.batiment', 'user']);
+
+        $pdf = Pdf::loadView('paiements.recu_pdf', compact('paiement'));
+
+        return $pdf->download('recu_paiement_' . $paiement->id . '_' . now()->format('Y-m-d') . '.pdf');
     }
 
-    public function update(Request $request, Paiement $paiement)
+    /**
+     * Vérification des droits de propriété du paiement
+     */
+    private function authorizeUser(Paiement $paiement): void
     {
-        $validated = $request->validate([
-            'locataire_id'     => 'required|exists:locataires,id',
-            'montant_paiement' => 'required|numeric|min:0',
-            'date_paiement'    => 'required|date',
-            'date_debut_conso' => 'required|date',
-            'date_fin_conso'   => 'required|date|after_or_equal:date_debut_conso',
-            'note'             => 'nullable|string|max:255',
-        ]);
-
-        $paiement->update($validated);
-
-        return redirect()->route('paiements.index')
-            ->with('success', 'Paiement mis à jour avec succès.');
-    }
-
-    public function destroy(Paiement $paiement)
-    {
-        $paiement->delete();
-
-        return redirect()->route('paiements.index')
-            ->with('success', 'Paiement supprimé avec succès.');
+        if ($paiement->user_id !== Auth::id()) {
+            abort(403, 'Accès non autorisé à ce reçu.');
+        }
     }
 }

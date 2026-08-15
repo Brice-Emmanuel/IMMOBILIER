@@ -1,115 +1,114 @@
 @extends('layouts.app')
 
 @section('content')
-<style>
-    .form-card { border: none; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); overflow: hidden; }
-    .form-header { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 25px 30px; color: white; }
-    .custom-input, .custom-select { border-radius: 12px; padding: 12px 16px; border: 1px solid #cbd5e1; background-color: #f8fafc; transition: all 0.2s ease-in-out; }
-    .custom-input:focus, .custom-select:focus { background-color: #ffffff; border-color: #3b82f6; box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.15); }
-    .btn-update { background-color: #2563eb; border: none; color: white; transition: background-color 0.2s ease; }
-    .btn-update:hover { background-color: #1d4ed8; color: white; }
-</style>
+<div class="max-w-lg mx-auto bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
+    <!-- En-tête -->
+    <div class="bg-[#0A2E38] text-white p-5 flex items-center justify-between">
+        <h1 class="font-bold uppercase text-xs tracking-wider flex items-center">
+            <i class="fa-solid fa-user-pen mr-2 text-[#C6E900]"></i> Modifier le Locataire
+        </h1>
+        <a href="{{ route('locataires.index') }}" class="text-gray-300 hover:text-white text-xs transition">
+            <i class="fa-solid fa-xmark text-base"></i>
+        </a>
+    </div>
 
-<div class="row justify-content-center my-4">
-    <div class="col-lg-9">
-        <div class="card form-card">
-            
-            <div class="form-header d-flex align-items-center justify-content-between">
-                <div>
-                    <h4 class="fw-bold mb-1"><i class="bi bi-pencil-square me-2 text-primary"></i>Modifier le Locataire</h4>
-                    <p class="mb-0 text-white-50 fs-7">Mettez à jour les informations de {{ $locataire->nom }} {{ $locataire->prenom }}</p>
-                </div>
-                <a href="{{ route('locataires.index') }}" class="btn btn-outline-light btn-sm rounded-pill px-3">
-                    <i class="bi bi-arrow-left me-1"></i> Retour
-                </a>
+    <!-- Formulaire -->
+    <form method="POST" action="{{ route('locataires.update', $locataire) }}" class="p-6 space-y-4">
+        @csrf
+        @method('PUT')
+
+        <!-- Nom & Prénom -->
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs font-bold uppercase text-gray-700 mb-1.5">
+                    Nom <span class="text-red-500">*</span>
+                </label>
+                <input type="text" name="nom" value="{{ old('nom', $locataire->nom) }}" required 
+                       placeholder="Ex: Tagne, Kamga..." 
+                       class="w-full border @error('nom') border-red-500 @else border-gray-300 @enderror rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0A2E38] transition">
+                @error('nom') 
+                    <span class="text-red-500 text-xs mt-1 block"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</span> 
+                @enderror
             </div>
 
-            <div class="card-body p-4 p-md-5">
-
-                @if ($errors->any())
-                    <div class="alert alert-danger rounded-3 mb-4 border-0 shadow-sm">
-                        <div class="fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-2"></i>Veuillez corriger les erreurs :</div>
-                        <ul class="mb-0 ps-3">
-                            @foreach ($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
-
-                <form action="{{ route('locataires.update', $locataire) }}" method="POST">
-                    @csrf
-                    @method('PUT')
-
-                    <!-- Nom & Prénom -->
-                    <div class="row g-4 mb-4">
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold text-dark">Nom <span class="text-danger">*</span></label>
-                            <input type="text" name="nom" class="form-control custom-input @error('nom') is-invalid @enderror" value="{{ old('nom', $locataire->nom) }}" required placeholder="Ex: Dupont">
-                            @error('nom') <div class="invalid-feedback ms-1">{{ $message }}</div> @enderror
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold text-dark">Prénom</label>
-                            <input type="text" name="prenom" class="form-control custom-input @error('prenom') is-invalid @enderror" value="{{ old('prenom', $locataire->prenom) }}" placeholder="Ex: Jean">
-                            @error('prenom') <div class="invalid-feedback ms-1">{{ $message }}</div> @enderror
-                        </div>
-                    </div>
-
-                    <!-- Email & Téléphone principal -->
-                    <div class="row g-4 mb-4">
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold text-dark">Adresse Email</label>
-                            <input type="email" name="email" class="form-control custom-input @error('email') is-invalid @enderror" value="{{ old('email', $locataire->email) }}" placeholder="Ex: jean.dupont@email.com">
-                            @error('email') <div class="invalid-feedback ms-1">{{ $message }}</div> @enderror
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold text-dark">Téléphone <span class="text-danger">*</span></label>
-                            <input type="text" name="phone" class="form-control custom-input @error('phone') is-invalid @enderror" value="{{ old('phone', $locataire->phone) }}" required placeholder="Ex: 600000000">
-                            @error('phone') <div class="invalid-feedback ms-1">{{ $message }}</div> @enderror
-                        </div>
-                    </div>
-
-                    <!-- Urgence, Loyer & Choix du Logement -->
-                    <div class="row g-4 mb-4">
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold text-dark">Téléphone d'Urgence</label>
-                            <input type="text" name="phone_urgence" class="form-control custom-input @error('phone_urgence') is-invalid @enderror" value="{{ old('phone_urgence', $locataire->phone_urgence) }}" placeholder="Contact d'un proche">
-                            @error('phone_urgence') <div class="invalid-feedback ms-1">{{ $message }}</div> @enderror
-                        </div>
-
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold text-dark">Loyer personnalisé (FCFA)</label>
-                            <input type="number" step="0.01" name="loyer" class="form-control custom-input @error('loyer') is-invalid @enderror" value="{{ old('loyer', $locataire->loyer) }}" placeholder="Ex: 150000">
-                            @error('loyer') <div class="invalid-feedback ms-1">{{ $message }}</div> @enderror
-                        </div>
-
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold text-dark">Logement attribué</label>
-                            <select name="logement_id" class="form-select custom-select @error('logement_id') is-invalid @enderror">
-                                <option value="">-- Aucun logement --</option>
-                                @foreach($logements as $l)
-                                    <option value="{{ $l->id }}" {{ old('logement_id', $locataire->logement_id) == $l->id ? 'selected' : '' }}>
-                                        Logement N° {{ $l->numero ?? $l->id }} ({{ $l->batiment->name ?? 'Bâtiment' }})
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('logement_id') <div class="invalid-feedback ms-1">{{ $message }}</div> @enderror
-                        </div>
-                    </div>
-
-                    <!-- Boutons d'actions -->
-                    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
-                        <a href="{{ route('locataires.index') }}" class="btn btn-light rounded-3 px-4 py-2 fw-semibold">Annuler</a>
-                        <button type="submit" class="btn btn-update rounded-3 px-4 py-2 fw-bold shadow-sm">
-                            <i class="bi bi-check-lg me-1"></i> Enregistrer les modifications
-                        </button>
-                    </div>
-
-                </form>
+            <div>
+                <label class="block text-xs font-bold uppercase text-gray-700 mb-1.5">Prénom</label>
+                <input type="text" name="prenom" value="{{ old('prenom', $locataire->prenom) }}" 
+                       placeholder="Ex: Jean-Paul, Carine..." 
+                       class="w-full border @error('prenom') border-red-500 @else border-gray-300 @enderror rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0A2E38] transition">
+                @error('prenom') 
+                    <span class="text-red-500 text-xs mt-1 block"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</span> 
+                @enderror
             </div>
         </div>
-    </div>
+
+        <!-- Téléphones -->
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs font-bold uppercase text-gray-700 mb-1.5">
+                    Téléphone <span class="text-red-500">*</span>
+                </label>
+                <input type="text" name="phone" value="{{ old('phone', $locataire->phone) }}" required 
+                       placeholder="Ex: 699000111" 
+                       class="w-full border @error('phone') border-red-500 @else border-gray-300 @enderror rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0A2E38] transition">
+                @error('phone') 
+                    <span class="text-red-500 text-xs mt-1 block"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</span> 
+                @enderror
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold uppercase text-gray-700 mb-1.5">Tél. Urgence</label>
+                <input type="text" name="phone_urgence" value="{{ old('phone_urgence', $locataire->phone_urgence) }}" 
+                       placeholder="Ex: 677000222 (Proche)" 
+                       class="w-full border @error('phone_urgence') border-red-500 @else border-gray-300 @enderror rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0A2E38] transition">
+                @error('phone_urgence') 
+                    <span class="text-red-500 text-xs mt-1 block"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</span> 
+                @enderror
+            </div>
+        </div>
+
+        <!-- Logement -->
+        <div>
+            <label class="block text-xs font-bold uppercase text-gray-700 mb-1.5">Attribuer / Modifier le Logement</label>
+            <select name="logement_id" 
+                    class="w-full border @error('logement_id') border-red-500 @else border-gray-300 @enderror rounded-xl px-3.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#0A2E38] transition">
+                <option value="">-- Aucun logement attribué --</option>
+                @foreach($logements as $l)
+                    <option value="{{ $l->id }}" {{ old('logement_id', $locataire->logement_id) == $l->id ? 'selected' : '' }}>
+                        {{ $l->batiment->name ?? 'Bâtiment' }} - Appt {{ $l->numero }} ({{ number_format($l->loyer_mensuel) }} FCFA)
+                    </option>
+                @endforeach
+            </select>
+            @error('logement_id') 
+                <span class="text-red-500 text-xs mt-1 block"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</span> 
+            @enderror
+        </div>
+
+        <!-- Loyer Convenu -->
+        <div>
+            <label class="block text-xs font-bold uppercase text-gray-700 mb-1.5">
+                Loyer Convenu (FCFA) <span class="text-red-500">*</span>
+            </label>
+            <div class="relative">
+                <input type="number" name="loyer" value="{{ old('loyer', $locataire->loyer) }}" required 
+                       placeholder="Ex: 85000" 
+                       class="w-full border @error('loyer') border-red-500 @else border-gray-300 @enderror rounded-xl pl-3.5 pr-14 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0A2E38] transition">
+                <span class="absolute right-3 top-2 text-xs font-bold text-gray-400 pointer-events-none">FCFA</span>
+            </div>
+            @error('loyer') 
+                <span class="text-red-500 text-xs mt-1 block"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</span> 
+            @enderror
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-end space-x-3 pt-4 border-t border-gray-100">
+            <a href="{{ route('locataires.index') }}" class="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold uppercase rounded-xl transition">
+                Annuler
+            </a>
+            <button type="submit" class="px-5 py-2.5 bg-[#0A2E38] hover:bg-[#061e25] text-white text-xs font-bold uppercase rounded-xl transition shadow-sm">
+                <i class="fa-solid fa-rotate mr-1 text-[#C6E900]"></i> Mettre à jour
+            </button>
+        </div>
+    </form>
 </div>
 @endsection

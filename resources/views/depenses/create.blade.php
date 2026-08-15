@@ -1,75 +1,78 @@
 @extends('layouts.app')
 
 @section('content')
-<style>
-    .form-card { border: none; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); overflow: hidden; }
-    .form-header { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 25px 30px; color: white; }
-    .custom-input, .custom-select { border-radius: 12px; padding: 12px 16px; border: 1px solid #cbd5e1; background-color: #f8fafc; }
-    .custom-input:focus, .custom-select:focus { background-color: #ffffff; border-color: #ef4444; box-shadow: 0 0 0 0.25rem rgba(239, 68, 68, 0.15); }
-</style>
-
-<div class="row justify-content-center my-4">
-    <div class="col-lg-8">
-        <div class="card form-card">
-            <div class="form-header d-flex align-items-center justify-content-between">
-                <div>
-                    <h4 class="fw-bold mb-1"><i class="bi bi-tools me-2 text-danger"></i>Enregistrer une Dépense</h4>
-                    <p class="mb-0 text-white-50 fs-7">Saisissez une charge ou travaux sur un bâtiment</p>
-                </div>
-                <a href="{{ route('depenses.index') }}" class="btn btn-outline-light btn-sm rounded-pill px-3">
-                    <i class="bi bi-arrow-left me-1"></i> Retour
-                </a>
-            </div>
-
-            <div class="card-body p-4 p-md-5">
-                <form action="{{ route('depenses.store') }}" method="POST">
-                    @csrf
-
-                    <div class="mb-4">
-                        <label class="form-label fw-bold text-dark">Bâtiment concerné <span class="text-danger">*</span></label>
-                        <select name="batiment_id" class="form-select custom-select @error('batiment_id') is-invalid @enderror" required>
-                            <option value="">-- Sélectionner le bâtiment --</option>
-                            @foreach($batiments as $bat)
-                                <option value="{{ $bat->id }}" {{ old('batiment_id') == $bat->id ? 'selected' : '' }}>
-                                    {{ $bat->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('batiment_id') <div class="invalid-feedback ms-1">{{ $message }}</div> @enderror
-                    </div>
-
-                    <div class="mb-4">
-                        <label class="form-label fw-bold text-dark">Motif / Description de la dépense <span class="text-danger">*</span></label>
-                        <input type="text" name="motif" class="form-control custom-input @error('motif') is-invalid @enderror" value="{{ old('motif') }}" placeholder="Ex: Réparation plomberie, Peinture" required>
-                        @error('motif') <div class="invalid-feedback ms-1">{{ $message }}</div> @enderror
-                    </div>
-
-                    <div class="row g-4 mb-4">
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold text-dark">Montant dépensé (FCFA) <span class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <input type="number" name="montant_depenses" class="form-control custom-input @error('montant_depenses') is-invalid @enderror" value="{{ old('montant_depenses') }}" placeholder="Ex: 25000" required>
-                                <span class="input-group-text bg-light text-muted fw-bold">FCFA</span>
-                            </div>
-                            @error('montant_depenses') <div class="invalid-feedback ms-1">{{ $message }}</div> @enderror
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold text-dark">Date de la dépense <span class="text-danger">*</span></label>
-                            <input type="date" name="date_depense" class="form-control custom-input @error('date_depense') is-invalid @enderror" value="{{ old('date_depense', date('Y-m-d')) }}" required>
-                            @error('date_depense') <div class="invalid-feedback ms-1">{{ $message }}</div> @enderror
-                        </div>
-                    </div>
-
-                    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
-                        <a href="{{ route('depenses.index') }}" class="btn btn-light rounded-3 px-4 py-2">Annuler</a>
-                        <button type="submit" class="btn btn-danger rounded-3 px-4 py-2 fw-bold">
-                            Enregistrer la Dépense
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+<div class="max-w-lg mx-auto bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
+    <!-- En-tête -->
+    <div class="bg-[#0A2E38] text-white p-5 flex items-center justify-between">
+        <h1 class="font-bold uppercase text-xs tracking-wider flex items-center">
+            <i class="fa-solid fa-receipt mr-2 text-[#C6E900]"></i> Enregistrer une Dépense
+        </h1>
+        <a href="{{ route('depenses.index') }}" class="text-gray-300 hover:text-white text-xs transition">
+            <i class="fa-solid fa-xmark text-base"></i>
+        </a>
     </div>
+
+    <!-- Formulaire -->
+    <form method="POST" action="{{ route('depenses.store') }}" class="p-6 space-y-4">
+        @csrf
+
+        <!-- Bâtiment -->
+        <div>
+            <label class="block text-xs font-bold uppercase text-gray-700 mb-1.5">
+                Bâtiment Concerné <span class="text-red-500">*</span>
+            </label>
+            <select name="batiment_id" required 
+                    class="w-full border @error('batiment_id') border-red-500 @else border-gray-300 @enderror rounded-xl px-3.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#0A2E38] transition">
+                <option value="" disabled {{ old('batiment_id') ? '' : 'selected' }}>-- Choisir un bâtiment dans la liste --</option>
+                @foreach($batiments as $b)
+                    <option value="{{ $b->id }}" {{ old('batiment_id') == $b->id ? 'selected' : '' }}>
+                        {{ $b->name }} ({{ $b->ville }})
+                    </option>
+                @endforeach
+            </select>
+            @error('batiment_id') 
+                <span class="text-red-500 text-xs mt-1 block"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</span> 
+            @enderror
+        </div>
+
+        <!-- Motif -->
+        <div>
+            <label class="block text-xs font-bold uppercase text-gray-700 mb-1.5">
+                Motif de la Dépense <span class="text-red-500">*</span>
+            </label>
+            <input type="text" name="motif" value="{{ old('motif') }}" required 
+                   placeholder="Ex: Réparation fuite d'eau, Achat d'ampoules LED, Entretien peinture..." 
+                   class="w-full border @error('motif') border-red-500 @else border-gray-300 @enderror rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0A2E38] transition">
+            @error('motif') 
+                <span class="text-red-500 text-xs mt-1 block"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</span> 
+            @enderror
+        </div>
+
+        <!-- Montant -->
+        <div>
+            <label class="block text-xs font-bold uppercase text-gray-700 mb-1.5">
+                Montant (FCFA) <span class="text-red-500">*</span>
+            </label>
+            <div class="relative">
+                <input type="number" step="0.01" name="montant_depenses" value="{{ old('montant_depenses') }}" required 
+                       placeholder="Ex: 25000" 
+                       class="w-full border @error('montant_depenses') border-red-500 @else border-gray-300 @enderror rounded-xl pl-3.5 pr-14 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0A2E38] transition">
+                <span class="absolute right-3 top-2 text-xs font-bold text-gray-400 pointer-events-none">FCFA</span>
+            </div>
+            @error('montant_depenses') 
+                <span class="text-red-500 text-xs mt-1 block"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</span> 
+            @enderror
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-end space-x-3 pt-4 border-t border-gray-100">
+            <a href="{{ route('depenses.index') }}" class="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold uppercase rounded-xl transition">
+                Annuler
+            </a>
+            <button type="submit" class="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold uppercase rounded-xl transition shadow-sm">
+                <i class="fa-solid fa-check mr-1 text-white"></i> Enregistrer
+            </button>
+        </div>
+    </form>
 </div>
 @endsection

@@ -5,113 +5,121 @@ namespace App\Http\Controllers;
 use App\Models\Logement;
 use App\Models\Batiment;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class LogementController extends Controller
 {
-    /**
-     * Liste des logements filtrés par Catégorie et Statut uniquement.
-     */
-    public function index(Request $request)
-    {
-        $query = Logement::whereHas('batiment', function ($q) {
-            $q->where('user_id', auth()->id());
-        })->with('batiment');
+   public function index(Request $request)
+{
+    // Bâtiments du bailleur pour le menu déroulant
+    $batiments = Batiment::where('user_id', auth()->id())->get();
 
-        // 1. Filtre par Catégorie
-        if ($request->filled('categorie')) {
-            $query->where('categorie', $request->categorie);
-        }
+    // Requête de base
+    $query = Logement::where('user_id', auth()->id())->with('batiment');
 
-        // 2. Filtre par Statut (1 = Disponible / 0 = Occupé)
-        if ($request->filled('statut')) {
-            $query->where('statut', $request->statut);
-        }
-
-        $logements = $query->latest()->paginate(10)->appends($request->query());
-
-        return view('logements.index', compact('logements'));
+    // 1. Recherche par mot-clé (Numéro/Porte, Description ou Nom du Bâtiment)
+    if ($request->filled('search')) {
+        $search = $request->search;
+        $query->where(function($q) use ($search) {
+            $q->where('numero', 'like', "%{$search}%")
+              ->orWhere('description', 'like', "%{$search}%")
+              ->orWhereHas('batiment', function($bQuery) use ($search) {
+                  $bQuery->where('name', 'like', "%{$search}%");
+              });
+        });
     }
 
-    /**
-     * Formulaire de création d'un logement.
-     */
+    // 2. Filtre par Bâtiment
+    if ($request->filled('batiment_id')) {
+        $query->where('batiment_id', $request->batiment_id);
+    }
+
+    // 3. Filtre par Catégorie
+    if ($request->filled('categorie')) {
+        $query->where('categorie', $request->categorie);
+    }
+
+    // 4. Filtre par Statut (0 = Occupé, 1 = Libre)
+    if ($request->filled('statut')) {
+        $query->where('statut', $request->statut);
+    }
+
+    $logements = $query->latest()->get();
+
+    return view('logements.index', compact('logements', 'batiments'));
+}
     public function create()
     {
+        // Récupération des bâtiments appartenant uniquement au bailleur connecté
         $batiments = Batiment::where('user_id', auth()->id())->get();
+
         return view('logements.create', compact('batiments'));
     }
 
-    /**
-     * Enregistrement d'un nouveau logement.
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'batiment_id'   => 'required|exists:batiments,id',
-            'numero'        => 'nullable|string|max:255',
-            'categorie'     => 'required|in:appartement,maison,studio,boutique,bureau',
+            'batiment_id' => [
+                'required',
+                Rule::exists('batiments', 'id')->where(fn ($query) => $query->where('user_id', auth()->id()))
+            ],
+            'numero' => 'nullable|string|max:50',
+            'categorie' => 'required|in:appartement,maison,studio,boutique,bureau',
+            'description' => 'nullable|string',
             'loyer_mensuel' => 'required|numeric|min:0',
-            'statut'        => 'required',
-            'description'   => 'nullable|string',
         ]);
 
-        $validated['statut'] = in_array($request->statut, ['1', 'disponible', true], true);
+        $validated['user_id'] = auth()->id();
+        $validated['statut'] = 1; // Par défaut Libre (1)
 
         Logement::create($validated);
 
-        return redirect()->route('logements.index')
-            ->with('success', 'Logement créé avec succès.');
+        return redirect()->route('logements.index')->with('success', 'Logement ajouté avec succès.');
     }
 
-    /**
-     * Affichage des détails d'un logement.
-     */
-    public function show(Logement $logement)
-    {
-        $logement->load('batiment');
-        return view('logements.show', compact('logement'));
-    }
-
-    /**
-     * Formulaire de modification d'un logement.
-     */
     public function edit(Logement $logement)
     {
+        $this->authorizeUser($logement);
+
+        // Liste des bâtiments de l'utilisateur pour le menu déroulant
         $batiments = Batiment::where('user_id', auth()->id())->get();
+
         return view('logements.edit', compact('logement', 'batiments'));
     }
 
-    /**
-     * Mise à jour d'un logement existant.
-     */
     public function update(Request $request, Logement $logement)
     {
-        $validated = $request->validate([
-            'batiment_id'   => 'required|exists:batiments,id',
-            'numero'        => 'nullable|string|max:255',
-            'categorie'     => 'required|in:appartement,maison,studio,boutique,bureau',
-            'loyer_mensuel' => 'required|numeric|min:0',
-            'statut'        => 'nullable',
-            'description'   => 'nullable|string',
-        ]);
+        $this->authorizeUser($logement);
 
-        // Si la case à cocher 'statut' est présente, le logement est disponible (true), sinon occupé (false)
-        $validated['statut'] = $request->has('statut');
+        $validated = $request->validate([
+            'batiment_id' => [
+                'required',
+                Rule::exists('batiments', 'id')->where(fn ($query) => $query->where('user_id', auth()->id()))
+            ],
+            'numero' => 'nullable|string|max:50',
+            'categorie' => 'required|in:appartement,maison,studio,boutique,bureau',
+            'description' => 'nullable|string',
+            'loyer_mensuel' => 'required|numeric|min:0',
+            'statut' => 'required|boolean',
+        ]);
 
         $logement->update($validated);
 
-        return redirect()->route('logements.index')
-            ->with('success', 'Logement mis à jour avec succès.');
+        return redirect()->route('logements.index')->with('success', 'Logement mis à jour avec succès.');
     }
 
-    /**
-     * Suppression d'un logement.
-     */
     public function destroy(Logement $logement)
     {
+        $this->authorizeUser($logement);
         $logement->delete();
 
-        return redirect()->route('logements.index')
-            ->with('success', 'Logement supprimé avec succès.');
+        return redirect()->route('logements.index')->with('success', 'Logement supprimé.');
+    }
+
+    private function authorizeUser(Logement $logement)
+    {
+        if ($logement->user_id !== auth()->id()) {
+            abort(403);
+        }
     }
 }

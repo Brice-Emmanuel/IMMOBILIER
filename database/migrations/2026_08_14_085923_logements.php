@@ -10,11 +10,13 @@ return new class extends Migration
     {
         Schema::create('logements', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('batiment_id')->constrained()->onDelete('cascade');
+            $table->string('numero')->nullable(); // Ex: Appt A1, Porte 3
             $table->enum('categorie', ['appartement', 'maison', 'studio', 'boutique', 'bureau']);
             $table->text('description')->nullable();
-            $table->decimal('loyer_mensuel',10,2);
-            $table->boolean('statut')->default(false);
+            $table->decimal('loyer_mensuel', 10, 2);
+            $table->boolean('statut')->default(1); // 1 = Libre, 0 = Occupé
             $table->timestamps();
         });
     }

@@ -1,170 +1,159 @@
 @extends('layouts.app')
 
 @section('content')
-<style>
-    .form-card { border: none; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); overflow: hidden; }
-    .form-header { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 25px 30px; color: white; }
-    .custom-input, .custom-select { border-radius: 12px; padding: 12px 16px; border: 1px solid #cbd5e1; background-color: #f8fafc; }
-    .custom-input:focus, .custom-select:focus { background-color: #ffffff; border-color: #10b981; box-shadow: 0 0 0 0.25rem rgba(16, 185, 129, 0.15); }
+<div class="max-w-lg mx-auto bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
+    <!-- En-tête -->
+    <div class="bg-[#0A2E38] text-white p-5 flex items-center justify-between">
+        <h1 class="font-bold uppercase text-xs tracking-wider flex items-center">
+            <i class="fa-solid fa-door-open mr-2 text-[#C6E900]"></i> Ajouter un Logement
+        </h1>
+        <a href="{{ route('logements.index') }}" class="text-gray-300 hover:text-white text-xs transition">
+            <i class="fa-solid fa-xmark text-base"></i>
+        </a>
+    </div>
 
-    /* Custom Switch Container */
-    .switch-card {
-        background-color: #f8fafc;
-        border: 1px solid #cbd5e1;
-        border-radius: 12px;
-        padding: 10px 16px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        min-height: 50px;
-    }
+    <!-- Formulaire -->
+    <form method="POST" action="{{ route('logements.store') }}" class="p-6 space-y-4">
+        @csrf
 
-    /* Style du switch Bootstrap personnalisé */
-    .form-switch .form-check-input {
-        width: 3em;
-        height: 1.5em;
-        cursor: pointer;
-    }
-    .form-switch .form-check-input:checked {
-        background-color: #ef4444; /* Rouge quand Occupé */
-        border-color: #ef4444;
-    }
-    .form-switch .form-check-input:not(:checked) {
-        background-color: #10b981; /* Vert quand Libre */
-        border-color: #10b981;
-    }
-</style>
+        <!-- Bâtiment -->
+        <div>
+            <label class="block text-xs font-bold uppercase text-gray-700 mb-1.5">
+                Bâtiment <span class="text-red-500">*</span>
+            </label>
+            <select name="batiment_id" required 
+                    class="w-full border @error('batiment_id') border-red-500 @else border-gray-300 @enderror rounded-xl px-3.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#0A2E38] transition">
+                <option value="" disabled {{ old('batiment_id') ? '' : 'selected' }}>-- Sélectionner un bâtiment --</option>
+                @foreach($batiments as $b)
+                    <option value="{{ $b->id }}" {{ old('batiment_id') == $b->id ? 'selected' : '' }}>
+                        {{ $b->name }} ({{ $b->ville }})
+                    </option>
+                @endforeach
+            </select>
+            @error('batiment_id') 
+                <span class="text-red-500 text-xs mt-1 block"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</span> 
+            @enderror
+        </div>
 
-<div class="row justify-content-center my-4">
-    <div class="col-lg-9">
-        <div class="card form-card">
-            <div class="form-header d-flex align-items-center justify-content-between">
-                <div>
-                    <h4 class="fw-bold mb-1"><i class="bi bi-house-door me-2 text-info"></i>Nouveau Logement</h4>
-                    <p class="mb-0 text-white-50 fs-7">Ajoutez un appartement, studio ou local à un bâtiment</p>
-                </div>
-                <a href="{{ route('logements.index') }}" class="btn btn-outline-light btn-sm rounded-pill px-3">
-                    <i class="bi bi-arrow-left me-1"></i> Retour
-                </a>
+        <!-- Numéro / Porte & Catégorie -->
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs font-bold uppercase text-gray-700 mb-1.5">Numéro / Porte</label>
+                <input type="text" name="numero" value="{{ old('numero') }}" 
+                       placeholder="Ex: Appt 102, Porte B3..." 
+                       class="w-full border @error('numero') border-red-500 @else border-gray-300 @enderror rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0A2E38] transition">
+                @error('numero') 
+                    <span class="text-red-500 text-xs mt-1 block"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</span> 
+                @enderror
             </div>
 
-            <div class="card-body p-4 p-md-5">
-
-                @if ($errors->any())
-                    <div class="alert alert-danger rounded-3 mb-4 border-0 shadow-sm">
-                        <div class="fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-2"></i>Veuillez corriger les erreurs suivantes :</div>
-                        <ul class="mb-0 ps-3">
-                            @foreach ($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
-
-                <form action="{{ route('logements.store') }}" method="POST">
-                    @csrf
-
-                    <div class="row g-4 mb-4">
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold text-dark">Bâtiment de rattachement <span class="text-danger">*</span></label>
-                            <select name="batiment_id" class="form-select custom-select @error('batiment_id') is-invalid @enderror" required>
-                                <option value="">-- Sélectionner un bâtiment --</option>
-                                @foreach($batiments as $batiment)
-                                    <option value="{{ $batiment->id }}" {{ old('batiment_id') == $batiment->id ? 'selected' : '' }}>
-                                        {{ $batiment->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('batiment_id') <div class="invalid-feedback ms-1">{{ $message }}</div> @enderror
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold text-dark">Numéro / Désignation</label>
-                            <input type="text" name="numero" class="form-control custom-input @error('numero') is-invalid @enderror" value="{{ old('numero') }}" placeholder="Ex: Appt A12, Porte 3, Magasin 1">
-                            @error('numero') <div class="invalid-feedback ms-1">{{ $message }}</div> @enderror
-                        </div>
-                    </div>
-
-                    <div class="row g-4 mb-4">
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold text-dark">Catégorie du bien <span class="text-danger">*</span></label>
-                            <select name="categorie" class="form-select custom-select @error('categorie') is-invalid @enderror" required>
-                                <option value="">-- Sélectionner la catégorie --</option>
-                                <option value="appartement" {{ old('categorie') == 'appartement' ? 'selected' : '' }}>Appartement</option>
-                                <option value="studio" {{ old('categorie') == 'studio' ? 'selected' : '' }}>Studio</option>
-                                <option value="maison" {{ old('categorie') == 'maison' ? 'selected' : '' }}>Maison</option>
-                                <option value="boutique" {{ old('categorie') == 'boutique' ? 'selected' : '' }}>Boutique</option>
-                                <option value="bureau" {{ old('categorie') == 'bureau' ? 'selected' : '' }}>Bureau</option>
-                            </select>
-                            @error('categorie') <div class="invalid-feedback ms-1">{{ $message }}</div> @enderror
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold text-dark">Loyer mensuel (FCFA) <span class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <input type="number" step="0.01" name="loyer_mensuel" class="form-control custom-input @error('loyer_mensuel') is-invalid @enderror" value="{{ old('loyer_mensuel') }}" placeholder="Ex: 150000" required>
-                                <span class="input-group-text bg-light text-muted fw-bold">FCFA</span>
-                            </div>
-                            @error('loyer_mensuel') <div class="invalid-feedback ms-1">{{ $message }}</div> @enderror
-                        </div>
-                    </div>
-
-                    <div class="row g-4 mb-4">
-                        <!-- Statut réaménagé sous forme de Bouton Toggle Switch -->
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold text-dark d-block">Statut du logement <span class="text-danger">*</span></label>
-                            <div class="switch-card">
-                                <span id="statusLabel" class="fw-bold text-success">
-                                    <i class="bi bi-check-circle-fill me-1"></i> Libre / Disponible
-                                </span>
-
-                                <div class="form-check form-switch m-0 p-0">
-                                    <!-- Valeur envoyée par défaut quand la case n'est PAS cochée (1 = Libre) -->
-                                    <input type="hidden" name="statut" value="1">
-                                    <!-- Valeur envoyée si la case EST cochée (0 = Occupé) -->
-                                    <input class="form-check-input ms-0" type="checkbox" id="statutToggle" name="statut" value="0" {{ old('statut') === '0' ? 'checked' : '' }}>
-                                </div>
-                            </div>
-                            @error('statut') <div class="text-danger small mt-1 ms-1">{{ $message }}</div> @enderror
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold text-dark">Description (Optionnel)</label>
-                            <textarea name="description" rows="2" class="form-control custom-input @error('description') is-invalid @enderror" placeholder="Étage, équipements...">{{ old('description') }}</textarea>
-                            @error('description') <div class="invalid-feedback ms-1">{{ $message }}</div> @enderror
-                        </div>
-                    </div>
-
-                    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
-                        <a href="{{ route('logements.index') }}" class="btn btn-light rounded-3 px-4 py-2">Annuler</a>
-                        <button type="submit" class="btn btn-success rounded-3 px-4 py-2 fw-bold" style="background-color: #10b981; border:none;">
-                            Enregistrer le Logement
-                        </button>
-                    </div>
-                </form>
+            <div>
+                <label class="block text-xs font-bold uppercase text-gray-700 mb-1.5">
+                    Catégorie <span class="text-red-500">*</span>
+                </label>
+                <select name="categorie" required 
+                        class="w-full border @error('categorie') border-red-500 @else border-gray-300 @enderror rounded-xl px-3.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#0A2E38] transition">
+                    <option value="appartement" {{ old('categorie') == 'appartement' ? 'selected' : '' }}>Appartement</option>
+                    <option value="studio" {{ old('categorie') == 'studio' ? 'selected' : '' }}>Studio</option>
+                    <option value="maison" {{ old('categorie') == 'maison' ? 'selected' : '' }}>Maison</option>
+                    <option value="boutique" {{ old('categorie') == 'boutique' ? 'selected' : '' }}>Boutique</option>
+                    <option value="bureau" {{ old('categorie') == 'bureau' ? 'selected' : '' }}>Bureau</option>
+                </select>
+                @error('categorie') 
+                    <span class="text-red-500 text-xs mt-1 block"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</span> 
+                @enderror
             </div>
         </div>
-    </div>
+
+        <!-- Loyer Mensuel & Statut (Toggle Switch) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+            <div>
+                <label class="block text-xs font-bold uppercase text-gray-700 mb-1.5">
+                    Loyer Mensuel (FCFA) <span class="text-red-500">*</span>
+                </label>
+                <div class="relative">
+                    <input type="number" name="loyer_mensuel" value="{{ old('loyer_mensuel') }}" required 
+                           placeholder="Ex: 75000" 
+                           class="w-full border @error('loyer_mensuel') border-red-500 @else border-gray-300 @enderror rounded-xl pl-3.5 pr-14 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0A2E38] transition">
+                    <span class="absolute right-3 top-2 text-xs font-bold text-gray-400 pointer-events-none">FCFA</span>
+                </div>
+                @error('loyer_mensuel') 
+                    <span class="text-red-500 text-xs mt-1 block"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</span> 
+                @enderror
+            </div>
+
+            <!-- Interrupteur Statut (Occupé / Libre) -->
+            <div>
+                <label class="block text-xs font-bold uppercase text-gray-700 mb-1.5">Disponibilité Initiales</label>
+                
+                <!-- Champ caché : 1 par défaut (Libre) ou conserve l'ancienne valeur si erreur -->
+                <input type="hidden" name="statut" id="statutInput" value="{{ old('statut', 1) }}">
+
+                <div class="flex items-center justify-between border border-gray-200 rounded-xl p-2.5 bg-gray-50">
+                    <span id="statutLabel" class="text-xs font-bold {{ old('statut', 1) == 0 ? 'text-red-600' : 'text-emerald-600' }}">
+                        {{ old('statut', 1) == 0 ? 'Occupé' : 'Libre' }}
+                    </span>
+
+                    <!-- Bouton Toggle -->
+                    <button type="button" 
+                            id="toggleStatutBtn" 
+                            onclick="toggleStatut()" 
+                            class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ old('statut', 1) == 0 ? 'bg-red-500' : 'bg-emerald-500' }}">
+                        <span id="toggleCircle" 
+                              class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ old('statut', 1) == 0 ? 'translate-x-5' : 'translate-x-0' }}">
+                        </span>
+                    </button>
+                </div>
+                @error('statut') 
+                    <span class="text-red-500 text-xs mt-1 block"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</span> 
+                @enderror
+            </div>
+        </div>
+
+        <!-- Description -->
+        <div>
+            <label class="block text-xs font-bold uppercase text-gray-700 mb-1.5">Description (Optionnelle)</label>
+            <textarea name="description" rows="3" 
+                      placeholder="Ex: 2 chambres, 1 salon, compteur prépayé, balcon..." 
+                      class="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0A2E38] transition">{{ old('description') }}</textarea>
+            @error('description') 
+                <span class="text-red-500 text-xs mt-1 block"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</span> 
+            @enderror
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-end space-x-3 pt-4 border-t border-gray-100">
+            <a href="{{ route('logements.index') }}" class="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold uppercase rounded-xl transition">
+                Annuler
+            </a>
+            <button type="submit" class="px-5 py-2.5 bg-[#0A2E38] hover:bg-[#061e25] text-white text-xs font-bold uppercase rounded-xl transition shadow-sm">
+                <i class="fa-solid fa-check mr-1 text-[#C6E900]"></i> Ajouter
+            </button>
+        </div>
+    </form>
 </div>
 
-<!-- JavaScript pour gérer le libellé dynamique -->
+<!-- Script Toggle Statut -->
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const toggle = document.getElementById('statutToggle');
-        const label = document.getElementById('statusLabel');
+    function toggleStatut() {
+        const input = document.getElementById('statutInput');
+        const label = document.getElementById('statutLabel');
+        const btn = document.getElementById('toggleStatutBtn');
+        const circle = document.getElementById('toggleCircle');
 
-        function updateToggleUI() {
-            if (toggle.checked) {
-                label.className = 'fw-bold text-danger';
-                label.innerHTML = '<i class="bi bi-x-circle-fill me-1"></i> Occupé';
-            } else {
-                label.className = 'fw-bold text-success';
-                label.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Libre / Disponible';
-            }
+        if (input.value == "1") {
+            input.value = "0";
+            label.textContent = "Occupé";
+            label.className = "text-xs font-bold text-red-600";
+            btn.className = "relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none bg-red-500";
+            circle.className = "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out translate-x-5";
+        } else {
+            input.value = "1";
+            label.textContent = "Libre";
+            label.className = "text-xs font-bold text-emerald-600";
+            btn.className = "relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none bg-emerald-500";
+            circle.className = "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out translate-x-0";
         }
-
-        toggle.addEventListener('change', updateToggleUI);
-        updateToggleUI(); // Exécution initiale
-    });
+    }
 </script>
 @endsection

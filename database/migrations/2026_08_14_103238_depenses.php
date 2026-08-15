@@ -6,15 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
-    {Schema::create('depenses', function (Blueprint $table) {
+    {
+        Schema::create('depenses', function (Blueprint $table) {
             $table->id();
-            $table->decimal('montant_depenses',10,2);
-            $table->string('motif');
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('batiment_id')->constrained()->onDelete('cascade');
+            $table->decimal('montant_depenses', 10, 2);
+            $table->string('motif');
             $table->timestamps();
         });
     }

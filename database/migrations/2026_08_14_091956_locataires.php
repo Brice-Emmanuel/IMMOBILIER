@@ -10,20 +10,19 @@ return new class extends Migration
     {
         Schema::create('locataires', function (Blueprint $table) {
             $table->id();
-            
-            // Relation avec le logement (nullable si le locataire n'a pas encore de logement)
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('logement_id')->nullable()->constrained('logements')->onDelete('set null');
 
             // Informations personnelles
             $table->string('nom');
-            $table->string('prenom')->nullable(); // Rendus optionnels
+            $table->string('prenom')->nullable();
             $table->string('email')->nullable();
             
             // Téléphones
             $table->string('phone');
-            $table->string('phone_urgence')->nullable(); // Rendus optionnels
+            $table->string('phone_urgence')->nullable();
             
-            // Financier (avec 0 par défaut)
+            // Financier
             $table->decimal('loyer', 10, 2)->default(0);
 
             $table->timestamps();

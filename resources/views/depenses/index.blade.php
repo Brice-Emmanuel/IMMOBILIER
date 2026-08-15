@@ -1,178 +1,164 @@
 @extends('layouts.app')
 
 @section('content')
-<style>
-    .card-custom {
-        border: none;
-        border-radius: 16px;
-        box-shadow: 0 5px 20px rgba(0,0,0,0.05);
-    }
-    .custom-input, .custom-select {
-        border-radius: 10px;
-        padding: 10px 14px;
-        border: 1px solid #cbd5e1;
-        background-color: #f8fafc;
-    }
-    .kpi-card {
-        background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
-        border-radius: 16px;
-        border: 1px solid #fca5a5;
-    }
-</style>
-
-<div class="container-fluid py-3">
-
-    <!-- En-tête -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<div class="space-y-6">
+    <!-- En-tête de page -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-            <h3 class="fw-bold text-dark mb-1"><i class="bi bi-wallet2 me-2 text-danger"></i>Gestion des Dépenses</h3>
-            <p class="text-muted mb-0 fs-7">Suivez et filtrez toutes les dépenses liées à vos bâtiments</p>
+            <h1 class="text-2xl font-black text-[#0A2E38] uppercase tracking-wide">Gestion des Dépenses</h1>
+            <p class="text-xs text-gray-500 mt-1">Suivez, filtrez et gérez les charges liées à vos biens immobiliers.</p>
         </div>
-        <a href="{{ route('depenses.create') }}" class="btn btn-danger rounded-3 px-4 py-2 fw-bold shadow-sm">
-            <i class="bi bi-plus-lg me-1"></i> Nouvelle Dépense
+        <a href="{{ route('depenses.create') }}" class="inline-flex items-center justify-center bg-[#0A2E38] hover:bg-[#061e25] text-white px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition shadow-sm hover:shadow">
+            <i class="fa-solid fa-plus mr-2 text-[#C6E900]"></i> Saisir une Dépense
         </a>
     </div>
 
-    <!-- Carte de Récapitulatif / Total -->
-    <div class="card kpi-card mb-4 p-3 border-0 shadow-sm">
-        <div class="d-flex align-items-center justify-content-between">
-            <div class="d-flex align-items-center gap-3">
-                <div class="bg-danger text-white p-3 rounded-3">
-                    <i class="bi bi-calculator fs-3"></i>
-                </div>
-                <div>
-                    <span class="text-muted small fw-semibold">Total des dépenses (Sélection)</span>
-                    <h3 class="fw-bold text-danger mb-0">{{ number_format($totalDepenses, 0, ',', ' ') }} FCFA</h3>
+    <!-- Barre de Filtres et Recherche (Fond Sombre #0A2E38) -->
+    <form method="GET" action="{{ route('depenses.index') }}" class="bg-[#0A2E38] p-5 rounded-2xl shadow-md text-white">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            
+            <!-- Recherche par Motif -->
+            <div>
+                <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-300 mb-1.5">Recherche</label>
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-gray-400"></i>
+                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Motif, description..." class="w-full pl-9 pr-3 py-2 bg-white/10 text-white placeholder-gray-400 border border-gray-600 focus:border-[#C6E900] focus:ring-1 focus:ring-[#C6E900] rounded-xl text-xs transition">
                 </div>
             </div>
-            <span class="badge bg-white text-danger border border-danger rounded-pill px-3 py-2 fw-semibold">
-                {{ $depenses->total() }} Dépense(s)
-            </span>
-        </div>
-    </div>
 
-    <!-- Message de succès -->
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show rounded-3 border-0 shadow-sm mb-4" role="alert">
-            <i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
+            <!-- Filtre Bâtiment -->
+            <div>
+                <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-300 mb-1.5">Bâtiment</label>
+                <select name="batiment_id" onchange="this.form.submit()" class="w-full px-3 py-2 bg-[#0A2E38] text-white border border-gray-600 focus:border-[#C6E900] focus:ring-1 focus:ring-[#C6E900] rounded-xl text-xs transition">
+                    <option value="">Tous les bâtiments</option>
+                    @foreach($batiments as $b)
+                        <option value="{{ $b->id }}" {{ request('batiment_id') == $b->id ? 'selected' : '' }}>
+                            {{ $b->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
 
-    <!-- Formulaire de Filtrage -->
-    <div class="card card-custom mb-4">
-        <div class="card-body p-3 p-md-4">
-            <form action="{{ route('depenses.index') }}" method="GET" class="row g-3">
-                
-                <!-- Recherche par Motif -->
-                <div class="col-md-3">
-                    <label class="form-label fw-semibold text-muted small">Motif / Libellé</label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-light border-end-0 text-muted rounded-start-3">
-                            <i class="bi bi-search"></i>
-                        </span>
-                        <input type="text" name="search" class="form-control custom-input border-start-0 rounded-end-3" 
-                               placeholder="Ex: Travaux, Electricité..." value="{{ request('search') }}">
+            <!-- Tri -->
+            <div>
+                <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-300 mb-1.5">Trier par</label>
+                <select name="sort" onchange="this.form.submit()" class="w-full px-3 py-2 bg-[#0A2E38] text-white border border-gray-600 focus:border-[#C6E900] focus:ring-1 focus:ring-[#C6E900] rounded-xl text-xs transition">
+                    <option value="desc" {{ request('sort', 'desc') == 'desc' ? 'selected' : '' }}>Plus récentes d'abord</option>
+                    <option value="asc" {{ request('sort') == 'asc' ? 'selected' : '' }}>Plus anciennes d'abord</option>
+                </select>
+            </div>
+
+            <!-- Boutons d'Action -->
+            <div class="flex items-end space-x-2">
+                <button type="submit" class="flex-1 bg-[#C6E900] hover:bg-[#b0d000] text-[#0A2E38] font-bold py-2 px-4 rounded-xl text-xs uppercase tracking-wider transition">
+                    Filtrer
+                </button>
+                @if(request()->hasAny(['search', 'batiment_id', 'sort']))
+                    <a href="{{ route('depenses.index') }}" class="bg-white/10 hover:bg-white/20 text-white font-bold py-2 px-3 rounded-xl text-xs uppercase transition flex items-center justify-center" title="Réinitialiser">
+                        <i class="fa-solid fa-rotate-left"></i>
+                    </a>
+                @endif
+            </div>
+
+        </div>
+    </form>
+
+    <!-- Affichage Mobile (Cartes) -->
+    <div class="grid grid-cols-1 gap-4 md:hidden">
+        @forelse($depenses as $d)
+            <div class="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm space-y-3">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h3 class="font-bold text-[#0A2E38] text-base">{{ $d->motif }}</h3>
+                        <p class="text-xs text-gray-500 font-medium mt-0.5">
+                            <i class="fa-solid fa-building mr-1 text-[#0A2E38]"></i>
+                            {{ $d->batiment->name ?? 'Général / Non attribué' }}
+                        </p>
                     </div>
+                    <span class="text-xs font-semibold text-gray-400">
+                        {{ $d->created_at ? $d->created_at->format('d/m/Y') : '' }}
+                    </span>
                 </div>
 
-                <!-- Filtre par Bâtiment -->
-                <div class="col-md-3">
-                    <label class="form-label fw-semibold text-muted small">Bâtiment</label>
-                    <select name="batiment_id" class="form-select custom-select" onchange="this.form.submit()">
-                        <option value="">Tous les bâtiments</option>
-                        @foreach($batiments as $b)
-                            <option value="{{ $b->id }}" {{ request('batiment_id') == $b->id ? 'selected' : '' }}>
-                                {{ $b->name }}
-                            </option>
-                        @endforeach
-                    </select>
+                <div class="border-t border-gray-100 pt-3 flex justify-between items-center">
+                    <span class="font-black text-red-600 text-base">- {{ number_format($d->montant_depenses, 0, ',', ' ') }} FCFA</span>
+                    
+                    <form method="POST" action="{{ route('depenses.destroy', $d) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette dépense ?')" class="inline">
+                        @csrf 
+                        @method('DELETE')
+                        <button type="submit" class="text-red-500 hover:text-red-700 transition font-bold text-xs flex items-center">
+                            <i class="fa-solid fa-trash mr-1"></i> Supprimer
+                        </button>
+                    </form>
                 </div>
-
-                <!-- Date Début -->
-                <div class="col-md-2">
-                    <label class="form-label fw-semibold text-muted small">Du</label>
-                    <input type="date" name="date_debut" class="form-control custom-input" value="{{ request('date_debut') }}">
-                </div>
-
-                <!-- Date Fin -->
-                <div class="col-md-2">
-                    <label class="form-label fw-semibold text-muted small">Au</label>
-                    <input type="date" name="date_fin" class="form-control custom-input" value="{{ request('date_fin') }}">
-                </div>
-
-                <!-- Boutons Filtrer / Effacer -->
-                <div class="col-md-2 d-flex align-items-end gap-2">
-                    <button type="submit" class="btn btn-danger custom-select w-100 fw-semibold">
-                        <i class="bi bi-funnel me-1"></i> Filtrer
-                    </button>
-                    @if(request()->has('search') || request()->has('batiment_id') || request()->has('date_debut') || request()->has('date_fin'))
-                        <a href="{{ route('depenses.index') }}" class="btn btn-light custom-select text-danger fw-semibold" title="Réinitialiser">
-                            <i class="bi bi-x-circle"></i>
-                        </a>
-                    @endif
-                </div>
-
-            </form>
-        </div>
+            </div>
+        @empty
+            <div class="bg-white rounded-2xl p-8 text-center border border-dashed border-gray-300">
+                <p class="text-xs text-gray-500 italic">Aucune dépense trouvée.</p>
+            </div>
+        @endforelse
     </div>
 
-    <!-- Tableau des Dépenses -->
-    <div class="card card-custom overflow-hidden">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light border-bottom">
-                    <tr>
-                        <th class="ps-4 py-3 text-muted fw-bold">#</th>
-                        <th class="py-3 text-muted fw-bold">Date</th>
-                        <th class="py-3 text-muted fw-bold">Bâtiment</th>
-                        <th class="py-3 text-muted fw-bold">Motif</th>
-                        <th class="py-3 text-muted fw-bold">Montant</th>
-                        <th class="pe-4 py-3 text-end text-muted fw-bold">Actions</th>
+    <!-- Affichage Desktop (Tableau) -->
+    <div class="hidden md:block bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-[#0A2E38] text-white text-xs uppercase tracking-wider">
+                    <th class="p-4">Date</th>
+                    <th class="p-4">Motif</th>
+                    <th class="p-4">Bâtiment Concerné</th>
+                    <th class="p-4">Montant</th>
+                    <th class="p-4 text-right">Action</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 text-sm">
+                @forelse($depenses as $d)
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="p-4 text-xs font-medium text-gray-500">
+                            {{ $d->created_at ? $d->created_at->format('d/m/Y') : '-' }}
+                        </td>
+                        <td class="p-4 font-bold text-[#0A2E38]">
+                            {{ $d->motif }}
+                        </td>
+                        <td class="p-4 text-xs text-gray-600">
+                            {{ $d->batiment->name ?? 'Général' }}
+                        </td>
+                        <td class="p-4 font-black text-red-600">
+                            - {{ number_format($d->montant_depenses, 0, ',', ' ') }} FCFA
+                        </td>
+                        <td class="p-4 text-right">
+                            <form method="POST" action="{{ route('depenses.destroy', $d) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette dépense ?')" class="inline">
+                                @csrf 
+                                @method('DELETE')
+                                <button type="submit" class="text-red-500 hover:text-red-700 transition font-bold text-xs flex items-center justify-end ml-auto">
+                                    <i class="fa-solid fa-trash mr-1"></i> Supprimer
+                                </button>
+                            </form>
+                        </td>
                     </tr>
-                </thead>
-                <tbody>
-                    @forelse($depenses as $d)
-                        <tr>
-                            <td class="ps-4 fw-bold text-secondary">{{ $d->id }}</td>
-                            <td class="text-muted small">
-                                <i class="bi bi-calendar-event me-1"></i>{{ $d->created_at->format('d/m/Y') }}
-                            </td>
-                            <td class="fw-bold text-dark">{{ $d->batiment->name ?? 'N/A' }}</td>
-                            <td>
-                                <span class="fw-semibold text-dark">{{ $d->motif }}</span>
-                            </td>
-                            <td class="fw-bold text-danger">
-                                - {{ number_format($d->montant_depenses, 0, ',', ' ') }} <small class="text-muted">FCFA</small>
-                            </td>
-                            <td class="pe-4 text-end">
-                                <div class="btn-group gap-1">
-                                    <a href="{{ route('depenses.show', $d) }}" class="btn btn-sm btn-light text-primary rounded-2" title="Voir les détails"><i class="bi bi-eye"></i></a>
-                                    <a href="{{ route('depenses.edit', $d) }}" class="btn btn-sm btn-light text-warning rounded-2" title="Modifier"><i class="bi bi-pencil"></i></a>
-                                    <form action="{{ route('depenses.destroy', $d) }}" method="POST" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette dépense ?')">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-light text-danger rounded-2" title="Supprimer"><i class="bi bi-trash"></i></button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">
-                                <i class="bi bi-receipt-cutoff fs-1 d-block mb-2 text-secondary"></i>
-                                Aucune dépense trouvée avec ces critères.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+                @empty
+                    <tr>
+                        <td colspan="5" class="p-12 text-center border-dashed">
+                            <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 text-gray-400">
+                                <i class="fa-solid fa-receipt text-xl"></i>
+                            </div>
+                            <h3 class="text-sm font-bold text-gray-700 uppercase">Aucune dépense trouvée</h3>
+                            <p class="text-xs text-gray-500 mt-1">Essayez d'ajuster vos filtres de recherche ou saisissez une nouvelle dépense.</p>
+                            <a href="{{ route('depenses.create') }}" class="inline-block mt-4 bg-[#0A2E38] text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider">
+                                Saisir une dépense
+                            </a>
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
     </div>
 
     <!-- Pagination -->
-    <div class="d-flex justify-content-center mt-4">
-        {{ $depenses->links() }}
-    </div>
-
+    @if(method_exists($depenses, 'links'))
+        <div>
+            {{ $depenses->links() }}
+        </div>
+    @endif
 </div>
 @endsection

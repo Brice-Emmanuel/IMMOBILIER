@@ -1,108 +1,103 @@
 @extends('layouts.app')
 
 @section('content')
-<style>
-    .form-card { border: none; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); overflow: hidden; }
-    .form-header { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 25px 30px; color: white; }
-    .custom-input, .custom-select { border-radius: 12px; padding: 12px 16px; border: 1px solid #cbd5e1; background-color: #f8fafc; }
-    .custom-input:focus, .custom-select:focus { background-color: #ffffff; border-color: #10b981; box-shadow: 0 0 0 0.25rem rgba(16, 185, 129, 0.15); }
-</style>
+<div class="max-w-lg mx-auto bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
+    <!-- En-tête -->
+    <div class="bg-[#0A2E38] text-white p-5 flex items-center justify-between">
+        <h1 class="font-bold uppercase text-xs tracking-wider flex items-center">
+            <i class="fa-solid fa-money-check-dollar mr-2 text-[#C6E900]"></i> Enregistrer un Loyer
+        </h1>
+        <a href="{{ route('paiements.index') }}" class="text-gray-300 hover:text-white text-xs transition">
+            <i class="fa-solid fa-xmark text-base"></i>
+        </a>
+    </div>
 
-<div class="row justify-content-center my-4">
-    <div class="col-lg-8">
-        <div class="card form-card">
-            <div class="form-header d-flex align-items-center justify-content-between">
-                <div>
-                    <h4 class="fw-bold mb-1"><i class="bi bi-cash-stack me-2 text-success"></i>Enregistrer un Paiement</h4>
-                    <p class="mb-0 text-white-50 fs-7">Saisissez la réception du loyer d'un locataire</p>
+    <!-- Formulaire -->
+    <form method="POST" action="{{ route('paiements.store') }}" class="p-6 space-y-4">
+        @csrf
+
+        <!-- Locataire -->
+        <div>
+            <label class="block text-xs font-bold uppercase text-gray-700 mb-1.5">
+                Locataire <span class="text-red-500">*</span>
+            </label>
+            <select name="locataire_id" required 
+                    class="w-full border @error('locataire_id') border-red-500 @else border-gray-300 @enderror rounded-xl px-3.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#0A2E38] transition">
+                <option value="" disabled {{ old('locataire_id') ? '' : 'selected' }}>-- Sélectionner le locataire --</option>
+                @foreach($locataires as $loc)
+                    <option value="{{ $loc->id }}" {{ old('locataire_id') == $loc->id ? 'selected' : '' }}>
+                        {{ $loc->nom }} {{ $loc->prenom }} ({{ $loc->logement->batiment->name ?? 'Sans bâtiment' }} - Appt {{ $loc->logement->numero ?? 'N/A' }})
+                    </option>
+                @endforeach
+            </select>
+            @error('locataire_id') 
+                <span class="text-red-500 text-xs mt-1 block"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</span> 
+            @enderror
+        </div>
+
+        <!-- Montant & Date de Paiement -->
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs font-bold uppercase text-gray-700 mb-1.5">
+                    Montant Payé (FCFA) <span class="text-red-500">*</span>
+                </label>
+                <div class="relative">
+                    <input type="number" step="0.01" name="montant_paiement" value="{{ old('montant_paiement') }}" required 
+                           placeholder="Ex: 85000" 
+                           class="w-full border @error('montant_paiement') border-red-500 @else border-gray-300 @enderror rounded-xl pl-3.5 pr-12 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0A2E38] transition">
+                    <span class="absolute right-2.5 top-2 text-xs font-bold text-gray-400 pointer-events-none">FCFA</span>
                 </div>
-                <a href="{{ route('paiements.index') }}" class="btn btn-outline-light btn-sm rounded-pill px-3">
-                    <i class="bi bi-arrow-left me-1"></i> Retour
-                </a>
+                @error('montant_paiement') 
+                    <span class="text-red-500 text-xs mt-1 block"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</span> 
+                @enderror
             </div>
 
-            <div class="card-body p-4 p-md-5">
-
-                {{-- Affichage général des erreurs si validation échoue --}}
-                @if ($errors->any())
-                    <div class="alert alert-danger rounded-3 mb-4">
-                        <div class="fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-2"></i>Veuillez corriger les erreurs suivantes :</div>
-                        <ul class="mb-0 ps-3">
-                            @foreach ($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
-
-                <form action="{{ route('paiements.store') }}" method="POST">
-                    @csrf
-
-                    <!-- Selection du Locataire -->
-                    <div class="mb-4">
-                        <label class="form-label fw-bold text-dark">Locataire <span class="text-danger">*</span></label>
-                        <select name="locataire_id" class="form-select custom-select @error('locataire_id') is-invalid @enderror" required>
-                            <option value="">-- Sélectionner le locataire --</option>
-                            @foreach($locataires as $loc)
-                                <option value="{{ $loc->id }}" {{ old('locataire_id') == $loc->id ? 'selected' : '' }}>
-                                    {{ $loc->nom }} {{ $loc->prenom }} 
-                                    @if($loc->logement) (Logement: {{ $loc->logement->numero }}) @endif
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('locataire_id') <div class="invalid-feedback ms-1">{{ $message }}</div> @enderror
-                    </div>
-
-                    <!-- Montant et Date de paiement -->
-                    <div class="row g-4 mb-4">
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold text-dark">Montant payé (FCFA) <span class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <input type="number" name="montant_paiement" class="form-control custom-input @error('montant_paiement') is-invalid @enderror" value="{{ old('montant_paiement') }}" placeholder="Ex: 100000" required>
-                                <span class="input-group-text bg-light text-muted fw-bold">FCFA</span>
-                            </div>
-                            @error('montant_paiement') <div class="invalid-feedback ms-1">{{ $message }}</div> @enderror
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold text-dark">Date du paiement <span class="text-danger">*</span></label>
-                            <input type="date" name="date_paiement" class="form-control custom-input @error('date_paiement') is-invalid @enderror" value="{{ old('date_paiement', date('Y-m-d')) }}" required>
-                            @error('date_paiement') <div class="invalid-feedback ms-1">{{ $message }}</div> @enderror
-                        </div>
-                    </div>
-
-                    <!-- Période de consommation (Ajoutée pour correspondre au contrôleur) -->
-                    <div class="row g-4 mb-4">
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold text-dark">Début période de consommation <span class="text-danger">*</span></label>
-                            <input type="date" name="date_debut_conso" class="form-control custom-input @error('date_debut_conso') is-invalid @enderror" value="{{ old('date_debut_conso') }}" required>
-                            @error('date_debut_conso') <div class="invalid-feedback ms-1">{{ $message }}</div> @enderror
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold text-dark">Fin période de consommation <span class="text-danger">*</span></label>
-                            <input type="date" name="date_fin_conso" class="form-control custom-input @error('date_fin_conso') is-invalid @enderror" value="{{ old('date_fin_conso') }}" required>
-                            @error('date_fin_conso') <div class="invalid-feedback ms-1">{{ $message }}</div> @enderror
-                        </div>
-                    </div>
-
-                    <!-- Note / Observations -->
-                    <div class="mb-4">
-                        <label class="form-label fw-bold text-dark">Note / Période (Optionnel)</label>
-                        <input type="text" name="note" class="form-control custom-input @error('note') is-invalid @enderror" placeholder="Ex: Loyer du mois d'Août 2026" value="{{ old('note') }}">
-                        @error('note') <div class="invalid-feedback ms-1">{{ $message }}</div> @enderror
-                    </div>
-
-                    <!-- Boutons d'action -->
-                    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
-                        <a href="{{ route('paiements.index') }}" class="btn btn-light rounded-3 px-4 py-2">Annuler</a>
-                        <button type="submit" class="btn btn-success rounded-3 px-4 py-2 fw-bold" style="background-color: #10b981; border:none;">
-                            Valider le Paiement
-                        </button>
-                    </div>
-                </form>
+            <div>
+                <label class="block text-xs font-bold uppercase text-gray-700 mb-1.5">
+                    Date du Paiement <span class="text-red-500">*</span>
+                </label>
+                <input type="date" name="date_paiement" value="{{ old('date_paiement', date('Y-m-d')) }}" required 
+                       class="w-full border @error('date_paiement') border-red-500 @else border-gray-300 @enderror rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0A2E38] transition">
+                @error('date_paiement') 
+                    <span class="text-red-500 text-xs mt-1 block"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</span> 
+                @enderror
             </div>
         </div>
-    </div>
+
+        <!-- Période Couverte -->
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs font-bold uppercase text-gray-700 mb-1.5">
+                    Début Période <span class="text-red-500">*</span>
+                </label>
+                <input type="date" name="date_debut_conso" value="{{ old('date_debut_conso') }}" required 
+                       class="w-full border @error('date_debut_conso') border-red-500 @else border-gray-300 @enderror rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0A2E38] transition">
+                @error('date_debut_conso') 
+                    <span class="text-red-500 text-xs mt-1 block"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</span> 
+                @enderror
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold uppercase text-gray-700 mb-1.5">
+                    Fin Période <span class="text-red-500">*</span>
+                </label>
+                <input type="date" name="date_fin_conso" value="{{ old('date_fin_conso') }}" required 
+                       class="w-full border @error('date_fin_conso') border-red-500 @else border-gray-300 @enderror rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0A2E38] transition">
+                @error('date_fin_conso') 
+                    <span class="text-red-500 text-xs mt-1 block"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</span> 
+                @enderror
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-end space-x-3 pt-4 border-t border-gray-100">
+            <a href="{{ route('paiements.index') }}" class="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold uppercase rounded-xl transition">
+                Annuler
+            </a>
+            <button type="submit" class="px-5 py-2.5 bg-[#C6E900] hover:bg-[#b0cf00] text-[#0A2E38] text-xs font-bold uppercase rounded-xl transition shadow-sm flex items-center">
+                <i class="fa-solid fa-receipt mr-1.5"></i> Générer le Reçu
+            </button>
+        </div>
+    </form>
 </div>
 @endsection

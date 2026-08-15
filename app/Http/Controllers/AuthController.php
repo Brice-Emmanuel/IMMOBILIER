@@ -9,34 +9,9 @@ use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
-    //connexion
-    public function showLoginForm()
-    {
-        return view('auth.login');
-    }
+    // --- Inscription ---
 
-    public function login(Request $request)
-    {
-        $user = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required', 'string'],
-        ]);
-
-        if (Auth::attempt($user, $request->boolean('remember'))) {
-            $request->session()->regenerate();
-
-            return redirect()->intended(route('dashboard'))
-                ->with('success', 'Connexion réussie !');
-        }
-
-        return back()->withErrors([
-            'email' => 'Les identifiants fournis ne correspondent à aucun compte.',
-        ])->onlyInput('email');
-    }
-
-    //inscription
-
-    public function showRegisterForm()
+    public function showRegister()
     {
         return view('auth.register');
     }
@@ -45,25 +20,58 @@ class AuthController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'phone' => 'required|string|unique:users,phone',
-            'email' => 'required|string|email|max:255|unique:users,email',
+            'phone' => 'required|string|max:50|unique:users,phone',
+            'email' => 'nullable|email|max:255|unique:users,email',
             'password' => 'required|string|min:8|confirmed',
         ]);
 
         $user = User::create([
             'name' => $validated['name'],
             'phone' => $validated['phone'],
-            'email' => $validated['email'],
+            'email' => $validated['email'] ?? null,
             'password' => Hash::make($validated['password']),
         ]);
 
         Auth::login($user);
 
-        return redirect()->route('dashboard')
-            ->with('success', 'Votre compte a été créé avec succès.');
+        return redirect()->route('dashboard')->with('success', 'Bienvenue ! Votre compte a été créé avec succès.');
     }
 
-    //deconnexion
+    // --- Connexion ---
+
+    public function showLogin()
+    {
+        return view('auth.login');
+    }
+
+    public function login(Request $request)
+    {
+        $request->validate([
+            'login' => 'required|string', // Peut être l'email ou le téléphone
+            'password' => 'required|string',
+        ]);
+
+        $loginInput = $request->input('login');
+        
+        // Vérification si la saisie est un email ou un numéro de téléphone
+        $fieldType = filter_var($loginInput, FILTER_VALIDATE_EMAIL) ? 'email' : 'phone';
+
+        $credentials = [
+            $fieldType => $loginInput,
+            'password' => $request->password,
+        ];
+
+        if (Auth::attempt($credentials, $request->remember)) {
+            $request->session()->regenerate();
+            return redirect()->intended(route('dashboard'));
+        }
+
+        return back()->withErrors([
+            'login' => 'Les identifiants fournis ne correspondent pas à nos enregistrements.',
+        ])->onlyInput('login');
+    }
+
+    // --- Déconnexion ---
 
     public function logout(Request $request)
     {
@@ -72,7 +80,6 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('login')
-            ->with('success', 'Vous avez été déconnecté.');
+        return redirect()->route('login')->with('success', 'Vous avez été déconnecté.');
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Batiment;
 use App\Models\Locataire;
 use App\Models\Logement;
 use Illuminate\Http\Request;
@@ -13,18 +14,17 @@ class LocataireController extends Controller
     {
         $userId = auth()->id();
 
-        // Récupère uniquement les locataires associés aux logements des bâtiments de l'utilisateur connecté
-        $query = Locataire::whereHas('logement.batiment', function ($q) use ($userId) {
-            $q->where('user_id', $userId);
-        })->orWhere(function ($q) use ($userId) {
-            // Inclut aussi les locataires sans logement si leur création/bâtiment est rattaché à cet utilisateur
-            $q->whereNull('logement_id');
-        })->with('logement.batiment');
+        // Récupérer la liste des bâtiments pour la barre de filtre
+        $batiments = Batiment::where('user_id', $userId)->get();
 
-        // 1. Recherche par nom, prénom, téléphone ou email
+        // Construction de la requête pour les locataires de l'utilisateur connecté
+        $query = Locataire::where('user_id', $userId)
+            ->with('logement.batiment');
+
+        // 1. Recherche par Nom, Prénom, Téléphone ou Email
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('nom', 'like', "%{$search}%")
                   ->orWhere('prenom', 'like', "%{$search}%")
                   ->orWhere('phone', 'like', "%{$search}%")
@@ -32,36 +32,34 @@ class LocataireController extends Controller
             });
         }
 
-        // 2. Filtre par Logement spécifique
-        if ($request->filled('logement_id')) {
-            $query->where('logement_id', $request->logement_id);
+        // 2. Filtre par Bâtiment
+        if ($request->filled('batiment_id')) {
+            $batimentId = $request->batiment_id;
+            $query->whereHas('logement', function ($q) use ($batimentId) {
+                $q->where('batiment_id', $batimentId);
+            });
         }
 
-        // 3. Filtre par Statut d'attribution
-        if ($request->filled('assignation')) {
-            if ($request->assignation === 'assigne') {
+        // 3. Filtre par Statut d'attribution du logement (avec ou sans logement)
+        if ($request->filled('statut_logement')) {
+            if ($request->statut_logement === 'avec_logement') {
                 $query->whereNotNull('logement_id');
-            } elseif ($request->assignation === 'non_assigne') {
+            } elseif ($request->statut_logement === 'sans_logement') {
                 $query->whereNull('logement_id');
             }
         }
 
-        $locataires = $query->latest()->paginate(10)->appends($request->query());
+        $locataires = $query->latest()->get();
 
-        // Récupère uniquement les LOGEMENTS des bâtiments appartenant à l'utilisateur connecté
-        $logements = Logement::whereHas('batiment', function ($q) use ($userId) {
-            $q->where('user_id', $userId);
-        })->with('batiment')->get();
-
-        return view('locataires.index', compact('locataires', 'logements'));
+        return view('locataires.index', compact('locataires', 'batiments'));
     }
 
     public function create()
     {
-        // Récupère uniquement les LOGEMENTS appartenant aux bâtiments de l'utilisateur
-        $logements = Logement::whereHas('batiment', function ($q) {
-            $q->where('user_id', auth()->id());
-        })->with('batiment')->get();
+        // On récupère uniquement les logements libres du bailleur connecté
+        $logements = Logement::where('user_id', auth()->id())
+            ->where('statut', 1)
+            ->get();
 
         return view('locataires.create', compact('logements'));
     }
@@ -69,75 +67,97 @@ class LocataireController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nom'           => 'required|string|max:255',
-            'prenom'        => 'nullable|string|max:255',
-            'email'         => 'nullable|email|max:255',
-            'phone'         => 'required|string|max:50',
-            'phone_urgence' => 'nullable|string|max:50',
-            'loyer'         => 'nullable|numeric|min:0',
-            'logement_id'   => [
+            'logement_id' => [
                 'nullable',
-                // S'assure que le logement sélectionné appartient bien à l'utilisateur connecté
-                Rule::exists('logements', 'id')->where(function ($query) {
-                    $query->whereHas('batiment', function ($q) {
-                        $q->where('user_id', auth()->id());
-                    });
-                }),
+                Rule::exists('logements', 'id')->where(fn ($query) => $query->where('user_id', auth()->id()))
             ],
+            'nom' => 'required|string|max:255',
+            'prenom' => 'nullable|string|max:255',
+            'email' => 'nullable|email|max:255',
+            'phone' => 'required|string|max:50',
+            'phone_urgence' => 'nullable|string|max:50',
+            'loyer' => 'required|numeric|min:0',
         ]);
 
-        Locataire::create($validated);
+        $validated['user_id'] = auth()->id();
 
-        return redirect()->route('locataires.index')
-            ->with('success', 'Locataire ajouté avec succès.');
-    }
+        $locataire = Locataire::create($validated);
 
-    public function show(Locataire $locataire)
-    {
-        $locataire->load(['paiements', 'logement.batiment']);
-        return view('locataires.show', compact('locataire'));
+        // Si un logement a été attribué, marquer le logement comme occupé (0)
+        if ($request->filled('logement_id')) {
+            Logement::where('id', $request->logement_id)->update(['statut' => 0]);
+        }
+
+        return redirect()->route('locataires.index')->with('success', 'Locataire enregistré avec succès.');
     }
 
     public function edit(Locataire $locataire)
     {
-        // Récupère la liste des LOGEMENTS de l'utilisateur connecté
-        $logements = Logement::whereHas('batiment', function ($q) {
-            $q->where('user_id', auth()->id());
-        })->with('batiment')->get();
+        $this->authorizeUser($locataire);
+
+        // Logements libres + le logement actuel attribué à ce locataire
+        $logements = Logement::where('user_id', auth()->id())
+            ->where(function ($query) use ($locataire) {
+                $query->where('statut', 1)
+                      ->orWhere('id', $locataire->logement_id);
+            })
+            ->get();
 
         return view('locataires.edit', compact('locataire', 'logements'));
     }
 
     public function update(Request $request, Locataire $locataire)
     {
+        $this->authorizeUser($locataire);
+
         $validated = $request->validate([
-            'nom'           => 'required|string|max:255',
-            'prenom'        => 'nullable|string|max:255',
-            'email'         => 'nullable|email|max:255',
-            'phone'         => 'required|string|max:50',
-            'phone_urgence' => 'nullable|string|max:50',
-            'loyer'         => 'nullable|numeric|min:0',
-            'logement_id'   => [
+            'logement_id' => [
                 'nullable',
-                Rule::exists('logements', 'id')->where(function ($query) {
-                    $query->whereHas('batiment', function ($q) {
-                        $q->where('user_id', auth()->id());
-                    });
-                }),
+                Rule::exists('logements', 'id')->where(fn ($query) => $query->where('user_id', auth()->id()))
             ],
+            'nom' => 'required|string|max:255',
+            'prenom' => 'nullable|string|max:255',
+            'email' => 'nullable|email|max:255',
+            'phone' => 'required|string|max:50',
+            'phone_urgence' => 'nullable|string|max:50',
+            'loyer' => 'required|numeric|min:0',
         ]);
+
+        $ancienLogementId = $locataire->logement_id;
 
         $locataire->update($validated);
 
-        return redirect()->route('locataires.index')
-            ->with('success', 'Informations du locataire mises à jour avec succès.');
+        // Si changement de logement : libérer l'ancien (1) et occuper le nouveau (0)
+        if ($ancienLogementId !== $request->logement_id) {
+            if ($ancienLogementId) {
+                Logement::where('id', $ancienLogementId)->update(['statut' => 1]);
+            }
+            if ($request->logement_id) {
+                Logement::where('id', $request->logement_id)->update(['statut' => 0]);
+            }
+        }
+
+        return redirect()->route('locataires.index')->with('success', 'Locataire mis à jour.');
     }
 
     public function destroy(Locataire $locataire)
     {
+        $this->authorizeUser($locataire);
+
+        // Libérer le logement lors du départ du locataire
+        if ($locataire->logement_id) {
+            Logement::where('id', $locataire->logement_id)->update(['statut' => 1]);
+        }
+
         $locataire->delete();
 
-        return redirect()->route('locataires.index')
-            ->with('success', 'Locataire supprimé avec succès.');
+        return redirect()->route('locataires.index')->with('success', 'Locataire supprimé.');
+    }
+
+    private function authorizeUser(Locataire $locataire)
+    {
+        if ($locataire->user_id !== auth()->id()) {
+            abort(403);
+        }
     }
 }

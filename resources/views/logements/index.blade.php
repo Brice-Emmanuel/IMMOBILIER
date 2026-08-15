@@ -1,157 +1,159 @@
 @extends('layouts.app')
 
 @section('content')
-<style>
-    .card-custom { border: none; border-radius: 16px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
-    .custom-select { border-radius: 10px; padding: 10px 14px; border: 1px solid #cbd5e1; background-color: #f8fafc; }
-    .badge-available { background-color: #dcfce7; color: #15803d; font-weight: 600; padding: 6px 12px; border-radius: 20px; }
-    .badge-occupied { background-color: #fee2e2; color: #b91c1c; font-weight: 600; padding: 6px 12px; border-radius: 20px; }
-    .badge-category { background-color: #e0f2fe; color: #0369a1; font-weight: 600; padding: 5px 10px; border-radius: 8px; }
-</style>
-
-<div class="container-fluid py-3">
-
-    <!-- En-tête -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<div class="space-y-6">
+    <!-- En-tête de page -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-            <h3 class="fw-bold text-dark mb-1"><i class="bi bi-house-door me-2 text-primary"></i>Gestion des Logements</h3>
-            <p class="text-muted mb-0 fs-7">Consultez et filtrez tous vos biens immobiliers</p>
+            <h1 class="text-2xl font-black text-[#0A2E38] uppercase tracking-wide">Gestion des Logements</h1>
+            <p class="text-xs text-gray-500 mt-1">Consultez, filtrez et gérez votre parc de logements.</p>
         </div>
-        <a href="{{ route('logements.create') }}" class="btn btn-primary rounded-3 px-4 py-2 fw-bold shadow-sm">
-            <i class="bi bi-plus-lg me-1"></i> Nouveau Logement
+        <a href="{{ route('logements.create') }}" class="inline-flex items-center justify-center bg-[#0A2E38] hover:bg-[#061e25] text-white px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition shadow-sm hover:shadow">
+            <i class="fa-solid fa-plus mr-2 text-[#C6E900]"></i> Ajouter un Logement
         </a>
     </div>
 
-    <!-- Message de succès -->
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show rounded-3 border-0 shadow-sm mb-4" role="alert">
-            <i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    <!-- Barre de Filtres et Recherche (Fond Sombre #0A2E38) -->
+    <form method="GET" action="{{ route('logements.index') }}" class="bg-[#0A2E38] p-5 rounded-2xl shadow-md text-white">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            
+            <!-- Recherche par mot-clé -->
+            <div>
+                <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-300 mb-1.5">Recherche</label>
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-gray-400"></i>
+                    <input type="text" name="search" value="{{ request('search') }}" placeholder="N° Porte, réf..." class="w-full pl-9 pr-3 py-2 bg-white/10 text-white placeholder-gray-400 border border-gray-600 focus:border-[#C6E900] focus:ring-1 focus:ring-[#C6E900] rounded-xl text-xs transition">
+                </div>
+            </div>
+
+            <!-- Filtre Bâtiment -->
+            <div>
+                <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-300 mb-1.5">Bâtiment</label>
+                <select name="batiment_id" onchange="this.form.submit()" class="w-full px-3 py-2 bg-[#0A2E38] text-white border border-gray-600 focus:border-[#C6E900] focus:ring-1 focus:ring-[#C6E900] rounded-xl text-xs transition">
+                    <option value="">Tous les bâtiments</option>
+                    @foreach($batiments as $b)
+                        <option value="{{ $b->id }}" {{ request('batiment_id') == $b->id ? 'selected' : '' }}>
+                            {{ $b->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <!-- Filtre Catégorie -->
+            <div>
+                <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-300 mb-1.5">Catégorie</label>
+                <select name="categorie" onchange="this.form.submit()" class="w-full px-3 py-2 bg-[#0A2E38] text-white border border-gray-600 focus:border-[#C6E900] focus:ring-1 focus:ring-[#C6E900] rounded-xl text-xs transition">
+                    <option value="">Toutes catégories</option>
+                    @foreach(['appartement', 'studio', 'maison', 'boutique', 'bureau'] as $cat)
+                        <option value="{{ $cat }}" {{ request('categorie') == $cat ? 'selected' : '' }}>
+                            {{ ucfirst($cat) }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <!-- Filtre Statut -->
+            <div>
+                <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-300 mb-1.5">Statut</label>
+                <select name="statut" onchange="this.form.submit()" class="w-full px-3 py-2 bg-[#0A2E38] text-white border border-gray-600 focus:border-[#C6E900] focus:ring-1 focus:ring-[#C6E900] rounded-xl text-xs transition">
+                    <option value="">Tous statuts</option>
+                    <option value="1" {{ request('statut') === '1' ? 'selected' : '' }}>Libre</option>
+                    <option value="0" {{ request('statut') === '0' ? 'selected' : '' }}>Occupé</option>
+                </select>
+            </div>
+
+            <!-- Boutons d'Action -->
+            <div class="flex items-end space-x-2">
+                <button type="submit" class="flex-1 bg-[#C6E900] hover:bg-[#b0d000] text-[#0A2E38] font-bold py-2 px-4 rounded-xl text-xs uppercase tracking-wider transition">
+                    Filtrer
+                </button>
+                @if(request()->hasAny(['search', 'batiment_id', 'categorie', 'statut']))
+                    <a href="{{ route('logements.index') }}" class="bg-white/10 hover:bg-white/20 text-white font-bold py-2 px-3 rounded-xl text-xs uppercase transition flex items-center justify-center" title="Réinitialiser">
+                        <i class="fa-solid fa-rotate-left"></i>
+                    </a>
+                @endif
+            </div>
+
         </div>
-    @endif
+    </form>
 
-    <!-- Formulaire de Filtres (Uniquement Catégorie et Statut) -->
-    <div class="card card-custom mb-4">
-        <div class="card-body p-3 p-md-4">
-            <form action="{{ route('logements.index') }}" method="GET" class="row g-3">
-                
-                <div class="col-md-5">
-                    <label class="form-label fw-semibold text-muted small">Catégorie</label>
-                    <select name="categorie" class="form-select custom-select" onchange="this.form.submit()">
-                        <option value="">Toutes les catégories</option>
-                        <option value="maison" {{ request('categorie') == 'maison' ? 'selected' : '' }}>Maison</option>
-                        <option value="appartement" {{ request('categorie') == 'appartement' ? 'selected' : '' }}>Appartement</option>
-                        <option value="studio" {{ request('categorie') == 'studio' ? 'selected' : '' }}>Studio</option>
-                        <option value="boutique" {{ request('categorie') == 'boutique' ? 'selected' : '' }}>Boutique</option>
-                        <option value="bureau" {{ request('categorie') == 'bureau' ? 'selected' : '' }}>Bureau</option>
-                    </select>
+    <!-- Cartes des Logements -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        @forelse($logements as $l)
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 hover:shadow-md transition flex flex-col justify-between overflow-hidden">
+                <div class="p-5">
+                    <div class="flex justify-between items-start gap-2">
+                        <div>
+                            <h3 class="font-bold text-lg text-[#0A2E38] line-clamp-1">{{ $l->batiment->name ?? 'Sans Bâtiment' }}</h3>
+                            <p class="text-xs text-gray-500 font-medium mt-0.5">N° / Porte : <strong class="text-gray-800">{{ $l->numero ?? 'N/A' }}</strong></p>
+                        </div>
+
+                        @if($l->statut)
+                            <span class="inline-flex items-center bg-emerald-50 text-emerald-700 text-[11px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap border border-emerald-200">
+                                Libre
+                            </span>
+                        @else
+                            <span class="inline-flex items-center bg-red-50 text-red-700 text-[11px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap border border-red-200">
+                                Occupé
+                            </span>
+                        @endif
+                    </div>
+
+                    <div class="mt-4 space-y-2 text-xs border-t border-gray-100 pt-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-gray-500 flex items-center">
+                                <i class="fa-solid fa-layer-group mr-1.5 text-[#0A2E38]"></i> Catégorie :
+                            </span>
+                            <span class="font-bold text-gray-700 capitalize">
+                                {{ $l->categorie }}
+                            </span>
+                        </div>
+
+                        <div class="flex items-center justify-between">
+                            <span class="text-gray-500 flex items-center">
+                                <i class="fa-solid fa-money-bill-wave mr-1.5 text-[#0A2E38]"></i> Loyer mensuel :
+                            </span>
+                            <span class="font-bold text-emerald-600 text-sm">
+                                {{ number_format($l->loyer_mensuel, 0, ',', ' ') }} FCFA
+                            </span>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="col-md-5">
-                    <label class="form-label fw-semibold text-muted small">Statut / Disponibilité</label>
-                    <select name="statut" class="form-select custom-select" onchange="this.form.submit()">
-                        <option value="">Tous les statuts</option>
-                        <option value="1" {{ request('statut') === '1' ? 'selected' : '' }}>Disponible</option>
-                        <option value="0" {{ request('statut') === '0' ? 'selected' : '' }}>Occupé</option>
-                    </select>
-                </div>
+                <!-- Footer d'Actions -->
+                <div class="bg-gray-50 px-5 py-3 border-t border-gray-100 flex items-center justify-end space-x-3 text-xs font-bold">
+                    <a href="{{ route('logements.edit', $l) }}" class="text-blue-600 hover:text-blue-800 transition flex items-center">
+                        <i class="fa-solid fa-pen-to-square mr-1"></i> Éditer
+                    </a>
 
-                <div class="col-md-2 d-flex align-items-end">
-                    @if(request()->has('categorie') || request()->has('statut'))
-                        <a href="{{ route('logements.index') }}" class="btn btn-light custom-select w-100 text-center text-danger fw-semibold">
-                            <i class="bi bi-x-circle me-1"></i> Effacer
-                        </a>
-                    @else
-                        <button type="submit" class="btn btn-outline-primary custom-select w-100 fw-semibold">
-                            <i class="bi bi-funnel me-1"></i> Filtrer
+                    <form method="POST" action="{{ route('logements.destroy', $l) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce logement ?')" class="inline">
+                        @csrf 
+                        @method('DELETE')
+                        <button type="submit" class="text-red-500 hover:text-red-700 transition flex items-center">
+                            <i class="fa-solid fa-trash mr-1"></i> Supprimer
                         </button>
-                    @endif
+                    </form>
                 </div>
-
-            </form>
-        </div>
-    </div>
-
-    <!-- Tableau des Logements -->
-    <div class="card card-custom overflow-hidden">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light border-bottom">
-                    <tr>
-                        <th class="ps-4 py-3 text-muted fw-bold">#</th>
-                        <th class="py-3 text-muted fw-bold">Logement</th>
-                        <th class="py-3 text-muted fw-bold">Bâtiment</th>
-                        <th class="py-3 text-muted fw-bold">Catégorie</th>
-                        <th class="py-3 text-muted fw-bold">Loyer Mensuel</th>
-                        <th class="py-3 text-muted fw-bold">Statut</th>
-                        <th class="pe-4 py-3 text-end text-muted fw-bold">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($logements as $l)
-                        <tr>
-                            <td class="ps-4 fw-bold text-secondary">{{ $loop->iteration }}</td>
-                            
-                            <!-- Colonne Logement : Affiche la désignation/numéro du logement -->
-                            <td>
-                                <span class="fw-bold text-dark">
-                                    {{ $l->numero ?? 'Logement #' . $l->id }}
-                                </span>
-                            </td>
-
-                            <!-- Colonne Bâtiment : Nom du bâtiment rattaché -->
-                            <td>
-                                <span class="text-muted fw-semibold">
-                                    <i class="bi bi-building me-1"></i>{{ $l->batiment?->name ?? 'N/A' }}
-                                </span>
-                            </td>
-
-                            <td>
-                                <span class="badge-category">
-                                    {{ ucfirst($l->categorie) }}
-                                </span>
-                            </td>
-
-                            <td class="fw-bold text-dark">
-                                {{ number_format($l->loyer_mensuel, 0, ',', ' ') }} <small class="text-muted">FCFA</small>
-                            </td>
-
-                            <td>
-                                @if($l->statut)
-                                    <span class="badge-available"><i class="bi bi-check-circle me-1"></i>Disponible</span>
-                                @else
-                                    <span class="badge-occupied"><i class="bi bi-person-fill me-1"></i>Occupé</span>
-                                @endif
-                            </td>
-
-                            <td class="pe-4 text-end">
-                                <div class="btn-group gap-1">
-                                    <a href="{{ route('logements.show', $l) }}" class="btn btn-sm btn-light text-primary rounded-2" title="Voir"><i class="bi bi-eye"></i></a>
-                                    <a href="{{ route('logements.edit', $l) }}" class="btn btn-sm btn-light text-warning rounded-2" title="Modifier"><i class="bi bi-pencil"></i></a>
-                                    <form action="{{ route('logements.destroy', $l) }}" method="POST" class="d-inline" onsubmit="return confirm('Confirmer la suppression ?')">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-light text-danger rounded-2" title="Supprimer"><i class="bi bi-trash"></i></button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="7" class="text-center py-5 text-muted">
-                                <i class="bi bi-house-x fs-1 d-block mb-2 text-secondary"></i>
-                                Aucun logement trouvé.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+            </div>
+        @empty
+            <div class="col-span-full bg-white rounded-2xl p-12 text-center border border-dashed border-gray-300">
+                <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 text-gray-400">
+                    <i class="fa-solid fa-house-circle-xmark text-xl"></i>
+                </div>
+                <h3 class="text-sm font-bold text-gray-700 uppercase">Aucun logement trouvé</h3>
+                <p class="text-xs text-gray-500 mt-1">Essayez d'ajuster vos filtres de recherche ou créez un nouveau logement.</p>
+                <a href="{{ route('logements.create') }}" class="inline-block mt-4 bg-[#0A2E38] text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider">
+                    Créer un logement
+                </a>
+            </div>
+        @endforelse
     </div>
 
     <!-- Pagination -->
-    <div class="d-flex justify-content-center mt-4">
-        {{ $logements->links() }}
-    </div>
-
+    @if(method_exists($logements, 'links'))
+        <div>
+            {{ $logements->links() }}
+        </div>
+    @endif
 </div>
 @endsection
