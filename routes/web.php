@@ -50,11 +50,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/paiements/{paiement}/recu', [PaiementController::class, 'showRecu'])->name('paiements.showRecu');
     Route::get('/paiements/{paiement}/recu/download', [PaiementController::class, 'downloadRecu'])->name('paiements.downloadRecu');
 });
-Route::get('/run-migrations', function () {
-    try {
-        Artisan::call('migrate', ['--force' => true]);
-        return '<h1>✅ Migrations exécutées avec succès !</h1><pre>' . Artisan::output() . '</pre>';
-    } catch (\Exception $e) {
-        return '<h1>❌ Erreur de migration :</h1><pre>' . $e->getMessage() . '</pre>';
-    }
-});
+// Route::get('/run-migrations', function () {
+//     try {
+//         Artisan::call('migrate', ['--force' => true]);
+//         return '<h1>✅ Migrations exécutées avec succès !</h1><pre>' . Artisan::output() . '</pre>';
+//     } catch (\Exception $e) {
+//         return '<h1>❌ Erreur de migration :</h1><pre>' . $e->getMessage() . '</pre>';
+//     }
+// });
